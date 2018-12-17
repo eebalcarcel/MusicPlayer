@@ -17,10 +17,12 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.RelativeLayout;
 import android.widget.SearchView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ToggleButton;
 
 import com.github.nisrulz.sensey.Sensey;
 import com.github.nisrulz.sensey.TouchTypeDetector;
@@ -33,15 +35,19 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
     private static final int PERMISSIONS_REQUEST = 1;
-    private Button mediaButton, nextButton, previousButton;
+    private Button nextButton, previousButton;
+    private ToggleButton mediaButton;
     private TextView mediaStatus, song;
     private Toolbar topBar, bottomBar;
     private SearchView searchBar;
     private List<File> files;
-    private File currentlyPlayingTrack;
+    private int currentSongIndex;
     private MediaPlayer mp;
     private RelativeLayout rel;
     private Window window;
+    private boolean isPaused;
+    private int songTimePostion ;
+    int first=0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,6 +64,8 @@ public class MainActivity extends AppCompatActivity {
                 new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
                 PERMISSIONS_REQUEST);
 
+        isPaused = true;
+        songTimePostion = 0;
         mediaButton = findViewById(R.id.mediaButton);
         nextButton = findViewById(R.id.nextButton);
         previousButton = findViewById(R.id.previousButton);
@@ -172,40 +180,29 @@ public class MainActivity extends AppCompatActivity {
 
 
         mp = new MediaPlayer();
-
-        mediaButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
+        mediaButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (!mp.isPlaying()) {
                     try {
-                        mp.setDataSource(files.get(0).getPath());
-                        mp.prepare();
+                        if(first==0) {
+                            //currentSongIndex = files.get(0;
+                            mp.setDataSource(files.get(0).getPath());
+                            mp.prepare();
+                            first++;
+                        }
+                        mp.seekTo(songTimePostion);
                         mp.start();
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
                 } else {
-
-                }
-            }
-        });
-
-        nextButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-                try {
-                    mp.setDataSource(files.get(0).getPath());
-                    mp.prepare();
-                    mp.start();
-                } catch (Exception e) {
-                    e.printStackTrace();
+                    songTimePostion = mp.getCurrentPosition();
+                    mp.pause();
                 }
             }
         });
 
     }
-
 
     @Override
     protected void onDestroy() {
