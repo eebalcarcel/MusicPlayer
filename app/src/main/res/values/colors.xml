@@ -8,4 +8,5 @@
     <color name="seek_bar_background">#7500d0ff</color>
     <color name="seek_bar_progress">#00a6cf</color>
     <color name="seek_bar_secondary_progress">#3399CC</color>
+    <color name="song_time">#535353</color>
 </resources>

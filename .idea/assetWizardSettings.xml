@@ -33,9 +33,10 @@
                         </option>
                         <option name="values">
                           <map>
+                            <entry key="assetSourceType" value="FILE" />
                             <entry key="color" value="3be5c0" />
-                            <entry key="outputName" value="ic_play_arrow_black_24dp" />
-                            <entry key="sourceFile" value="D:\Users\eebal\Downloads\favorite-mark.svg" />
+                            <entry key="outputName" value="ic_untitled_1d" />
+                            <entry key="sourceFile" value="D:\Users\eebal\Desktop\Untitled-1.svg" />
                           </map>
                         </option>
                       </PersistentState>
