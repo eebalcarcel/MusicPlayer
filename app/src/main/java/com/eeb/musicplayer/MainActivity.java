@@ -3,7 +3,11 @@ package com.eeb.musicplayer;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.PixelFormat;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Environment;
@@ -15,6 +19,7 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.view.MotionEvent;
+import android.view.SurfaceHolder;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -26,9 +31,11 @@ import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import com.github.nisrulz.sensey.Sensey;
-import com.github.nisrulz.sensey.TouchTypeDetector;
 
 import java.io.File;
+import java.io.UnsupportedEncodingException;
+import java.net.URLConnection;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -39,7 +46,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int PERMISSIONS_REQUEST = 1;
     private Button nextButton, previousButton;
     private ToggleButton mediaButton;
-    private TextView mediaStatus, song;
+    private TextView mediaStatus, currentSong;
     private Toolbar topBar, bottomBar;
     private RecyclerView rViewSongs;
     private SearchView searchBar;
@@ -51,6 +58,7 @@ public class MainActivity extends AppCompatActivity {
     private Window window;
     private int songTimePostion;
     int first = 0;
+    //TODO; Remove songTimePosition
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,13 +80,13 @@ public class MainActivity extends AppCompatActivity {
         nextButton = findViewById(R.id.nextButton);
         previousButton = findViewById(R.id.previousButton);
         mediaStatus = findViewById(R.id.mediaStatus);
-        song = findViewById(R.id.song);
+        currentSong = findViewById(R.id.currentSong);
         topBar = findViewById(R.id.topBar);
         bottomBar = findViewById(R.id.bottomBar);
         rViewSongs = findViewById(R.id.rViewSongs);
         search_layout = findViewById(R.id.search);
         searchBar = findViewById(R.id.searchBar);
-
+        mp = new MediaPlayer();
 
         rViewSongs.setHasFixedSize(true);
         rViewSongs.setLayoutManager(new LinearLayoutManager(this));
@@ -139,7 +147,8 @@ public class MainActivity extends AppCompatActivity {
                             }
                         });
                 InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                imm.toggleSoftInput(0, InputMethodManager.HIDE_NOT_ALWAYS);            }
+                imm.toggleSoftInput(0, InputMethodManager.HIDE_NOT_ALWAYS);
+            }
 
             @Override
             public void onSwipeUp() {
@@ -158,14 +167,13 @@ public class MainActivity extends AppCompatActivity {
         });
 
 
-        mp = new MediaPlayer();
         mediaButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (!mp.isPlaying()) {
                     try {
                         if (first == 0) {
                             //currentSongIndex = files.get(0;
-                            //TODO: Get last song played or song selected
+                            //TODO: Get last currentSong played or currentSong selected
                             mp.setDataSource(songs.get(0).getPath());
                             mp.prepare();
                             first++;
@@ -196,10 +204,14 @@ public class MainActivity extends AppCompatActivity {
         return super.dispatchTouchEvent(event);
     }
 
+    @Override
+    public void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        window.setFormat(PixelFormat.RGBA_8888);
+    }
 
     /**
-     *  Populates songs' list with the files inside the Music folder
-     *
+     * Populates songs' list with the files inside the Music folder
      */
     @Override
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
@@ -213,18 +225,27 @@ public class MainActivity extends AppCompatActivity {
                         songs = new ArrayList<>();
 
                         for (File file : files) {
-                            songs.add(new Song(file.getPath()));
+                            try {
+                                String fileName = URLEncoder.encode(file.getName(), "UTF-8");
+                                if (URLConnection.guessContentTypeFromName(fileName).startsWith("audio")) {
+                                    songs.add(new Song(file.getPath()));
+                                }
+                            } catch (UnsupportedEncodingException e) {
+                                e.printStackTrace();
+                            }
                         }
 
-                        Collections.sort(songs, new Comparator<Song>() {
-                            @Override
-                            public int compare(Song s1, Song s2) {
-                                return s1.getTitle().compareToIgnoreCase(s2.getTitle());
-                            }
-                        });
+                        if (!songs.isEmpty()) {
+                            Collections.sort(songs, new Comparator<Song>() {
+                                @Override
+                                public int compare(Song s1, Song s2) {
+                                    return s1.getTitle().compareToIgnoreCase(s2.getTitle());
+                                }
+                            });
 
-                        //TODO: Remove line
-                        song.setText(songs.get(0).getTitle());
+                            //TODO: Remove line
+                            currentSong.setText(songs.get(0).getTitle());
+                        }
 
                         songAdapter = new SongAdapter(this, songs);
                         rViewSongs.setAdapter(songAdapter);
@@ -240,6 +261,6 @@ public class MainActivity extends AppCompatActivity {
 
     private int getStatusBarHeight() {
         int resourceId = getResources().getIdentifier("status_bar_height", "dimen", "android");
-        return resourceId>0?getResources().getDimensionPixelSize(resourceId):0;
+        return resourceId > 0 ? getResources().getDimensionPixelSize(resourceId) : 0;
     }
 }
