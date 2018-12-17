@@ -142,17 +142,15 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
         Sensey.getInstance().stop();
     }
 
-    @Override
-    public void onAttachedToWindow() {
-        super.onAttachedToWindow();
-        window.setFormat(PixelFormat.RGBA_8888);
-    }
+
 
     /**
      * Populates songs' list with the files inside the Music folder

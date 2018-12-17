@@ -7,8 +7,7 @@
     android:id="@+id/main_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/black_rectangle"
-    android:backgroundTint="@color/background"
+    android:background="@color/colorPrimary"
     tools:layout_editor_absoluteY="25dp">
 
     <android.support.constraint.ConstraintLayout
