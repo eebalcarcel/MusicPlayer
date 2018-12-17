@@ -54,12 +54,9 @@ public class MainActivity extends AppCompatActivity {
     private SongAdapter songAdapter;
     private int currentSongIndex;
     private MediaPlayer mp;
-    private ConstraintLayout search_layout;
+    private ConstraintLayout search_layout, content;
     private Window window;
-    private int songTimePostion;
     int first = 0;
-    //TODO; Remove songTimePosition
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -75,7 +72,6 @@ public class MainActivity extends AppCompatActivity {
                 new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
                 PERMISSIONS_REQUEST);
 
-        songTimePostion = 0;
         mediaButton = findViewById(R.id.mediaButton);
         nextButton = findViewById(R.id.nextButton);
         previousButton = findViewById(R.id.previousButton);
@@ -85,8 +81,10 @@ public class MainActivity extends AppCompatActivity {
         bottomBar = findViewById(R.id.bottomBar);
         rViewSongs = findViewById(R.id.rViewSongs);
         search_layout = findViewById(R.id.search);
+        content = findViewById(R.id.content);
         searchBar = findViewById(R.id.searchBar);
         mp = new MediaPlayer();
+        searchBar.setIconifiedByDefault(false);
 
         rViewSongs.setHasFixedSize(true);
         rViewSongs.setLayoutManager(new LinearLayoutManager(this));
@@ -99,33 +97,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        //Moves searchBar down so slide down animation works flawlessly the first time
-        searchBar.post(new Runnable() {
-            @Override
-            public void run() {
-                search_layout.setTranslationY(searchBar.getHeight());
-            }
-        });
 
-        //Hides searchBar when it loses focus
-        searchBar.setIconifiedByDefault(false);
-        searchBar.setOnQueryTextFocusChangeListener(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View view, boolean queryTextFocused) {
-                if (!queryTextFocused) {
-                    search_layout.animate()
-                            .setDuration(250)
-                            .translationY(-searchBar.getHeight())
-                            .alpha(0f)
-                            .withEndAction(new Runnable() {
-                                @Override
-                                public void run() {
-                                    searchBar.setVisibility(View.GONE);
-                                }
-                            });
-                }
-            }
-        });
 
         /**
          * Handles touches gestures
@@ -135,33 +107,12 @@ public class MainActivity extends AppCompatActivity {
         topBar.setOnTouchListener(new OnSwipeListener(this) {
             @Override
             public void onSwipeDown() {
-                searchBar.setVisibility(View.VISIBLE);
-                search_layout.animate()
-                        .setDuration(100)
-                        .translationY(topBar.getHeight())
-                        .alpha(1f)
-                        .withEndAction(new Runnable() {
-                            @Override
-                            public void run() {
-                                searchBar.requestFocusFromTouch();
-                            }
-                        });
-                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                imm.toggleSoftInput(0, InputMethodManager.HIDE_NOT_ALWAYS);
+                openSearchBar();
             }
 
             @Override
             public void onSwipeUp() {
-                search_layout.animate()
-                        .setDuration(250)
-                        .translationY(searchBar.getHeight())
-                        .alpha(0f)
-                        .withEndAction(new Runnable() {
-                            @Override
-                            public void run() {
-                                searchBar.setVisibility(View.GONE);
-                            }
-                        });
+                closeSearchBar();
             }
 
         });
@@ -178,13 +129,12 @@ public class MainActivity extends AppCompatActivity {
                             mp.prepare();
                             first++;
                         }
-                        mp.seekTo(songTimePostion);
+                        currentSongIndex = songs.indexOf(songs.get(0));
                         mp.start();
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
                 } else {
-                    songTimePostion = mp.getCurrentPosition();
                     mp.pause();
                 }
             }
@@ -196,12 +146,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         Sensey.getInstance().stop();
-    }
-
-    @Override
-    public boolean dispatchTouchEvent(MotionEvent event) {
-        Sensey.getInstance().setupDispatchTouchEvent(event);
-        return super.dispatchTouchEvent(event);
     }
 
     @Override
@@ -262,5 +206,44 @@ public class MainActivity extends AppCompatActivity {
     private int getStatusBarHeight() {
         int resourceId = getResources().getIdentifier("status_bar_height", "dimen", "android");
         return resourceId > 0 ? getResources().getDimensionPixelSize(resourceId) : 0;
+    }
+
+    private void closeSearchBar(){
+        search_layout.animate()
+                .setDuration(250)
+                .translationY(-searchBar.getHeight())
+                .alpha(0f)
+                .withEndAction(new Runnable() {
+                    @Override
+                    public void run() {
+                        searchBar.setVisibility(View.GONE);
+                    }
+                });
+
+        rViewSongs.setLayoutParams(new ConstraintLayout.LayoutParams(rViewSongs.getWidth(),rViewSongs.getHeight()+searchBar.getHeight()));
+        rViewSongs.animate()
+                .setDuration(100)
+                .translationY(0);
+    }
+
+    private void openSearchBar(){
+        searchBar.setVisibility(View.VISIBLE);
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.toggleSoftInput(0, InputMethodManager.HIDE_NOT_ALWAYS);
+        search_layout.animate()
+                .setDuration(100)
+                .translationY(searchBar.getHeight())
+                .alpha(1f)
+                .withEndAction(new Runnable() {
+                    @Override
+                    public void run() {
+                        searchBar.requestFocusFromTouch();
+                    }
+                });
+
+        rViewSongs.setLayoutParams(new ConstraintLayout.LayoutParams(rViewSongs.getWidth(),rViewSongs.getHeight()-searchBar.getHeight()));
+        rViewSongs.animate()
+                .setDuration(100)
+                .translationY(searchBar.getHeight());
     }
 }
