@@ -3,10 +3,11 @@ package com.eeb.musicplayer;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.Rect;
 import android.media.MediaPlayer;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.support.constraint.Constraints;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -16,6 +17,7 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
+import android.widget.RelativeLayout;
 import android.widget.SearchView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -38,22 +40,24 @@ public class MainActivity extends AppCompatActivity {
     private List<File> files;
     private File currentlyPlayingTrack;
     private MediaPlayer mp;
+    private RelativeLayout rel;
+    private Window window;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        window = getWindow();
 
-        //
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            Window w = getWindow();
-            w.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
-            w.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
-        }
+        //Makes the status bar transparent
+        window.setStatusBarColor(0x00000000);
+        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+        window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+
         ActivityCompat.requestPermissions(MainActivity.this,
                 new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
                 PERMISSIONS_REQUEST);
 
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
         mediaButton = findViewById(R.id.mediaButton);
         nextButton = findViewById(R.id.nextButton);
         previousButton = findViewById(R.id.previousButton);
@@ -62,11 +66,29 @@ public class MainActivity extends AppCompatActivity {
         topBar = findViewById(R.id.topBar);
         bottomBar = findViewById(R.id.bottomBar);
         searchBar = findViewById(R.id.searchBar);
+
+        //Adds status bar height to the topBar height
+        topBar.post(new Runnable() {
+            @Override
+            public void run() {
+                topBar.setLayoutParams(new Constraints.LayoutParams(topBar.getWidth(), topBar.getHeight() + getStatusBarHeight()));
+            }
+        });
+
+        //Moves searchBar up so slide down animation works flawlessly the first time
+        searchBar.post(new Runnable() {
+            @Override
+            public void run() {
+                searchBar.setTranslationY(-searchBar.getHeight());
+            }
+        });
+
+        //Hides searchBar when it loses focus
         searchBar.setIconifiedByDefault(false);
         searchBar.setOnQueryTextFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View view, boolean queryTextFocused) {
-                if(!queryTextFocused) {
+                if (!queryTextFocused) {
                     searchBar.animate()
                             .setDuration(250)
                             .translationY(-searchBar.getHeight())
@@ -96,11 +118,11 @@ public class MainActivity extends AppCompatActivity {
                                 .translationY(-searchBar.getHeight())
                                 .alpha(0f)
                                 .withEndAction(new Runnable() {
-                            @Override
-                            public void run() {
-                                searchBar.setVisibility(View.GONE);
-                            }
-                        });
+                                    @Override
+                                    public void run() {
+                                        searchBar.setVisibility(View.GONE);
+                                    }
+                                });
                         break;
                     case TouchTypeDetector.SWIPE_DIR_DOWN:
                         searchBar.setVisibility(View.VISIBLE);
@@ -109,13 +131,14 @@ public class MainActivity extends AppCompatActivity {
                                 .translationY(0)
                                 .alpha(1f)
                                 .withEndAction(new Runnable() {
-                            @Override
-                            public void run() {
-                                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                                imm.toggleSoftInput(0, InputMethodManager.HIDE_NOT_ALWAYS);
-                                searchBar.requestFocusFromTouch();
-                            }
-                        });
+                                    @Override
+                                    public void run() {
+
+                                        searchBar.requestFocusFromTouch();
+                                    }
+                                });
+                        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                        imm.toggleSoftInput(0, InputMethodManager.HIDE_NOT_ALWAYS);
                         break;
                 }
             }
@@ -153,12 +176,16 @@ public class MainActivity extends AppCompatActivity {
         mediaButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                try {
-                    mp.setDataSource(files.get(0).getPath());
-                    mp.prepare();
-                    mp.start();
-                } catch (Exception e) {
-                    e.printStackTrace();
+                if (!mp.isPlaying()) {
+                    try {
+                        mp.setDataSource(files.get(0).getPath());
+                        mp.prepare();
+                        mp.start();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                } else {
+
                 }
             }
         });
@@ -166,7 +193,6 @@ public class MainActivity extends AppCompatActivity {
         nextButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mp = new MediaPlayer();
 
                 try {
                     mp.setDataSource(files.get(0).getPath());
@@ -178,14 +204,8 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        searchBar.setTranslationY(-searchBar.getHeight());
-    }
 
     @Override
     protected void onDestroy() {
@@ -230,7 +250,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    public static String getFileNameWithoutExtension(File file) {
+    private static String getFileNameWithoutExtension(File file) {
         String name = file.getName();
         int pos = name.lastIndexOf(".");
         if (pos > 0) {
@@ -239,5 +259,12 @@ public class MainActivity extends AppCompatActivity {
         return name;
     }
 
-
+    private int getStatusBarHeight() {
+        int result = 0;
+        int resourceId = getResources().getIdentifier("status_bar_height", "dimen", "android");
+        if (resourceId > 0) {
+            result = getResources().getDimensionPixelSize(resourceId);
+        }
+        return result;
+    }
 }
