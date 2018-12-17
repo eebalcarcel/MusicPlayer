@@ -6,9 +6,6 @@ import java.io.File;
 import java.util.concurrent.TimeUnit;
 
 
-/**
- * TODO: extends File
- */
 public class Song extends File{
 
     private String title;
