@@ -124,66 +124,38 @@ public class MainActivity extends AppCompatActivity {
          * Shows searchBar when swipe down happens
          * Hides searchBar when swipe up happens
          */
-        TouchTypeDetector.TouchTypListener touchTypListener = new TouchTypeDetector.TouchTypListener() {
+        topBar.setOnTouchListener(new OnSwipeListener(this) {
             @Override
-            public void onSwipe(int swipeDirection) {
-                switch (swipeDirection) {
-                    case TouchTypeDetector.SWIPE_DIR_UP:
-                        search_layout.animate()
-                                .setDuration(250)
-                                .translationY(searchBar.getHeight())
-                                .alpha(0f)
-                                .withEndAction(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        searchBar.setVisibility(View.GONE);
-                                    }
-                                });
-                        break;
-                    case TouchTypeDetector.SWIPE_DIR_DOWN:
-                        searchBar.setVisibility(View.VISIBLE);
-                        search_layout.animate()
-                                .setDuration(100)
-                                .translationY(topBar.getHeight())
-                                .alpha(1f)
-                                .withEndAction(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        searchBar.requestFocusFromTouch();
-                                    }
-                                });
-                        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                        imm.toggleSoftInput(0, InputMethodManager.HIDE_NOT_ALWAYS);
-                        break;
-                }
-            }
+            public void onSwipeDown() {
+                searchBar.setVisibility(View.VISIBLE);
+                search_layout.animate()
+                        .setDuration(100)
+                        .translationY(topBar.getHeight())
+                        .alpha(1f)
+                        .withEndAction(new Runnable() {
+                            @Override
+                            public void run() {
+                                searchBar.requestFocusFromTouch();
+                            }
+                        });
+                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                imm.toggleSoftInput(0, InputMethodManager.HIDE_NOT_ALWAYS);            }
 
             @Override
-            public void onTwoFingerSingleTap() {
+            public void onSwipeUp() {
+                search_layout.animate()
+                        .setDuration(250)
+                        .translationY(searchBar.getHeight())
+                        .alpha(0f)
+                        .withEndAction(new Runnable() {
+                            @Override
+                            public void run() {
+                                searchBar.setVisibility(View.GONE);
+                            }
+                        });
             }
 
-            @Override
-            public void onThreeFingerSingleTap() {
-            }
-
-            @Override
-            public void onDoubleTap() {
-            }
-
-            @Override
-            public void onScroll(int scrollDirection) {
-            }
-
-            @Override
-            public void onSingleTap() {
-            }
-
-            @Override
-            public void onLongPress() {
-            }
-        };
-        Sensey.getInstance().init(getBaseContext());
-        Sensey.getInstance().startTouchTypeDetection(getBaseContext(), touchTypListener);
+        });
 
 
         mp = new MediaPlayer();
@@ -226,7 +198,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     /**
-     *
+     *  Populates songs' list with the files inside the Music folder
      *
      */
     @Override
