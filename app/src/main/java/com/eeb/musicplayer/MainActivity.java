@@ -3,29 +3,40 @@ package com.eeb.musicplayer;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.graphics.Rect;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.PixelFormat;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Environment;
+import android.support.constraint.ConstraintLayout;
 import android.support.constraint.Constraints;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.view.MotionEvent;
+import android.view.SurfaceHolder;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
-import android.widget.RelativeLayout;
+import android.widget.CompoundButton;
 import android.widget.SearchView;
 import android.widget.TextView;
-import android.widget.Toast;
+import android.widget.ToggleButton;
 
 import com.github.nisrulz.sensey.Sensey;
-import com.github.nisrulz.sensey.TouchTypeDetector;
 
 import java.io.File;
+import java.io.UnsupportedEncodingException;
+import java.net.URLConnection;
+import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -33,15 +44,21 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
     private static final int PERMISSIONS_REQUEST = 1;
-    private Button mediaButton, nextButton, previousButton;
-    private TextView mediaStatus, song;
+    private Button nextButton, previousButton;
+    private ToggleButton mediaButton;
+    private TextView mediaStatus, currentSong;
     private Toolbar topBar, bottomBar;
+    private RecyclerView rViewSongs;
     private SearchView searchBar;
-    private List<File> files;
-    private File currentlyPlayingTrack;
+    private List<Song> songs;
+    private SongAdapter songAdapter;
+    private int currentSongIndex;
     private MediaPlayer mp;
-    private RelativeLayout rel;
+    private ConstraintLayout search_layout;
     private Window window;
+    private int songTimePostion;
+    int first = 0;
+    //TODO; Remove songTimePosition
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,14 +75,21 @@ public class MainActivity extends AppCompatActivity {
                 new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
                 PERMISSIONS_REQUEST);
 
+        songTimePostion = 0;
         mediaButton = findViewById(R.id.mediaButton);
         nextButton = findViewById(R.id.nextButton);
         previousButton = findViewById(R.id.previousButton);
         mediaStatus = findViewById(R.id.mediaStatus);
-        song = findViewById(R.id.song);
+        currentSong = findViewById(R.id.currentSong);
         topBar = findViewById(R.id.topBar);
         bottomBar = findViewById(R.id.bottomBar);
+        rViewSongs = findViewById(R.id.rViewSongs);
+        search_layout = findViewById(R.id.search);
         searchBar = findViewById(R.id.searchBar);
+        mp = new MediaPlayer();
+
+        rViewSongs.setHasFixedSize(true);
+        rViewSongs.setLayoutManager(new LinearLayoutManager(this));
 
         //Adds status bar height to the topBar height
         topBar.post(new Runnable() {
@@ -75,11 +99,11 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        //Moves searchBar up so slide down animation works flawlessly the first time
+        //Moves searchBar down so slide down animation works flawlessly the first time
         searchBar.post(new Runnable() {
             @Override
             public void run() {
-                searchBar.setTranslationY(-searchBar.getHeight());
+                search_layout.setTranslationY(searchBar.getHeight());
             }
         });
 
@@ -89,7 +113,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onFocusChange(View view, boolean queryTextFocused) {
                 if (!queryTextFocused) {
-                    searchBar.animate()
+                    search_layout.animate()
                             .setDuration(250)
                             .translationY(-searchBar.getHeight())
                             .alpha(0f)
@@ -108,104 +132,65 @@ public class MainActivity extends AppCompatActivity {
          * Shows searchBar when swipe down happens
          * Hides searchBar when swipe up happens
          */
-        TouchTypeDetector.TouchTypListener touchTypListener = new TouchTypeDetector.TouchTypListener() {
+        topBar.setOnTouchListener(new OnSwipeListener(this) {
             @Override
-            public void onSwipe(int swipeDirection) {
-                switch (swipeDirection) {
-                    case TouchTypeDetector.SWIPE_DIR_UP:
-                        searchBar.animate()
-                                .setDuration(250)
-                                .translationY(-searchBar.getHeight())
-                                .alpha(0f)
-                                .withEndAction(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        searchBar.setVisibility(View.GONE);
-                                    }
-                                });
-                        break;
-                    case TouchTypeDetector.SWIPE_DIR_DOWN:
-                        searchBar.setVisibility(View.VISIBLE);
-                        searchBar.animate()
-                                .setDuration(250)
-                                .translationY(0)
-                                .alpha(1f)
-                                .withEndAction(new Runnable() {
-                                    @Override
-                                    public void run() {
-
-                                        searchBar.requestFocusFromTouch();
-                                    }
-                                });
-                        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                        imm.toggleSoftInput(0, InputMethodManager.HIDE_NOT_ALWAYS);
-                        break;
-                }
+            public void onSwipeDown() {
+                searchBar.setVisibility(View.VISIBLE);
+                search_layout.animate()
+                        .setDuration(100)
+                        .translationY(topBar.getHeight())
+                        .alpha(1f)
+                        .withEndAction(new Runnable() {
+                            @Override
+                            public void run() {
+                                searchBar.requestFocusFromTouch();
+                            }
+                        });
+                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                imm.toggleSoftInput(0, InputMethodManager.HIDE_NOT_ALWAYS);
             }
 
             @Override
-            public void onTwoFingerSingleTap() {
+            public void onSwipeUp() {
+                search_layout.animate()
+                        .setDuration(250)
+                        .translationY(searchBar.getHeight())
+                        .alpha(0f)
+                        .withEndAction(new Runnable() {
+                            @Override
+                            public void run() {
+                                searchBar.setVisibility(View.GONE);
+                            }
+                        });
             }
 
-            @Override
-            public void onThreeFingerSingleTap() {
-            }
-
-            @Override
-            public void onDoubleTap() {
-            }
-
-            @Override
-            public void onScroll(int scrollDirection) {
-            }
-
-            @Override
-            public void onSingleTap() {
-            }
-
-            @Override
-            public void onLongPress() {
-            }
-        };
-        Sensey.getInstance().init(getBaseContext());
-        Sensey.getInstance().startTouchTypeDetection(getBaseContext(), touchTypListener);
+        });
 
 
-        mp = new MediaPlayer();
-
-        mediaButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
+        mediaButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (!mp.isPlaying()) {
                     try {
-                        mp.setDataSource(files.get(0).getPath());
-                        mp.prepare();
+                        if (first == 0) {
+                            //currentSongIndex = files.get(0;
+                            //TODO: Get last currentSong played or currentSong selected
+                            mp.setDataSource(songs.get(0).getPath());
+                            mp.prepare();
+                            first++;
+                        }
+                        mp.seekTo(songTimePostion);
                         mp.start();
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
                 } else {
-
-                }
-            }
-        });
-
-        nextButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-                try {
-                    mp.setDataSource(files.get(0).getPath());
-                    mp.prepare();
-                    mp.start();
-                } catch (Exception e) {
-                    e.printStackTrace();
+                    songTimePostion = mp.getCurrentPosition();
+                    mp.pause();
                 }
             }
         });
 
     }
-
 
     @Override
     protected void onDestroy() {
@@ -220,27 +205,51 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    public void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        window.setFormat(PixelFormat.RGBA_8888);
+    }
+
+    /**
+     * Populates songs' list with the files inside the Music folder
+     */
+    @Override
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
         switch (requestCode) {
             case PERMISSIONS_REQUEST: {
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     String path = Environment.getExternalStorageDirectory() + "/Music";
                     File directory = new File(path);
-                    files = Arrays.asList(directory.listFiles());
-
-                    Collections.sort(files, new Comparator<File>() {
-                        @Override
-                        public int compare(File s1, File s2) {
-                            return s1.getName().compareToIgnoreCase(s2.getName());
-                        }
-                    });
-
+                    List<File> files = Arrays.asList(directory.listFiles());
                     if (files != null) {
-                        for (int i = 0; i < files.size(); i++) {
+                        songs = new ArrayList<>();
 
+                        for (File file : files) {
+                            try {
+                                String fileName = URLEncoder.encode(file.getName(), "UTF-8");
+                                if (URLConnection.guessContentTypeFromName(fileName).startsWith("audio")) {
+                                    songs.add(new Song(file.getPath()));
+                                }
+                            } catch (UnsupportedEncodingException e) {
+                                e.printStackTrace();
+                            }
                         }
+
+                        if (!songs.isEmpty()) {
+                            Collections.sort(songs, new Comparator<Song>() {
+                                @Override
+                                public int compare(Song s1, Song s2) {
+                                    return s1.getTitle().compareToIgnoreCase(s2.getTitle());
+                                }
+                            });
+
+                            //TODO: Remove line
+                            currentSong.setText(songs.get(0).getTitle());
+                        }
+
+                        songAdapter = new SongAdapter(this, songs);
+                        rViewSongs.setAdapter(songAdapter);
                     }
-                    song.setText(getFileNameWithoutExtension(files.get(0)));
                 } else {
                     finishAndRemoveTask();
                 }
@@ -250,21 +259,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private static String getFileNameWithoutExtension(File file) {
-        String name = file.getName();
-        int pos = name.lastIndexOf(".");
-        if (pos > 0) {
-            name = name.substring(0, pos);
-        }
-        return name;
-    }
-
     private int getStatusBarHeight() {
-        int result = 0;
         int resourceId = getResources().getIdentifier("status_bar_height", "dimen", "android");
-        if (resourceId > 0) {
-            result = getResources().getDimensionPixelSize(resourceId);
-        }
-        return result;
+        return resourceId > 0 ? getResources().getDimensionPixelSize(resourceId) : 0;
     }
 }

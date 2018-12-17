@@ -3,8 +3,13 @@
     <color name="colorPrimary">#04e0ca</color>
     <color name="colorPrimaryDark">#35a4d4</color>
     <color name="colorAccent">#087972</color>
-    <color name="primary_material_light">#000000</color>
-    <color name="foreground_material_light">#000000</color>
     <color name="text_color_primary">#ddffffff</color>
     <color name="primary_text_material_dark">#000000</color>
+    <color name="seek_bar_background">#7500d0ff</color>
+    <color name="seek_bar_progress">#00a6cf</color>
+    <color name="seek_bar_secondary_progress">#3399CC</color>
+    <color name="song_time">#8bffffff</color>
+    <color name="media_status">#d2d2d2</color>
+    <color name="current_song">#7c9cab</color>
+    <color name="background">#031B23</color>
 </resources>
