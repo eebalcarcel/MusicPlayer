@@ -12,4 +12,5 @@
         <item name="android:statusBarColor">@color/colorPrimary</item>
         <item name="android:colorForeground">@color/foreground_material_light</item>
     </style>
+
 </resources>
