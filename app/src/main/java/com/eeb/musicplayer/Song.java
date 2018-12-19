@@ -1,6 +1,7 @@
 package com.eeb.musicplayer;
 
 import android.media.MediaMetadataRetriever;
+import android.os.Parcel;
 
 import java.io.File;
 import java.util.concurrent.TimeUnit;
@@ -10,8 +11,9 @@ public class Song extends File{
 
     private String title;
     private int length;
+    private int index;
 
-    public Song(String pathname) {
+    public Song(String pathname, int index) {
         super(pathname);
         int pos = this.getName().lastIndexOf(".");
         this.title = pos>0?this.getName().substring(0, pos):this.getName();
@@ -19,6 +21,8 @@ public class Song extends File{
         mmr.setDataSource(this.getPath());
         this.length = Integer.parseInt(mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
         mmr.release();
+
+        this.index = index;
     }
 
     public String getTitle() {
