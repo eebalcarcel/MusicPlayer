@@ -59,8 +59,8 @@ public class MainActivity extends AppCompatActivity {
 
         //Populates songs with the Songs' JSON
         Intent intent = getIntent();
-        String message = intent.getStringExtra("SplashActivity");
-        songs = (new Gson()).fromJson(message, new TypeToken<List<Song>>(){}.getType());
+        String songsJson = intent.getStringExtra("songs");
+        songs = (new Gson()).fromJson(songsJson, new TypeToken<List<Song>>(){}.getType());
 
         mediaButton = findViewById(R.id.mediaButton);
         nextButton = findViewById(R.id.nextButton);

@@ -46,7 +46,7 @@ public class SplashActivity extends AppCompatActivity {
             @Override
             public void run() {
                 Intent intent = new Intent(SplashActivity.this, MainActivity.class);
-                intent.putExtra("SplashActivity", songsJson);
+                intent.putExtra("songs", songsJson);
                 startActivity(intent);
                 finish();
             }
