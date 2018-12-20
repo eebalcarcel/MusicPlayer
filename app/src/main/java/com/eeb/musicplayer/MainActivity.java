@@ -42,7 +42,6 @@ public class MainActivity extends AppCompatActivity {
     private ConstraintLayout search_layout, content;
     private Window window;
     private ArrayList<Track> tracks;
-    int first = 0;
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
@@ -109,7 +108,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-
         //Populates tracks with the Tracks' JSON
         Intent intent = getIntent();
         String tracksJson = intent.getStringExtra("tracks");
@@ -139,7 +137,6 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         Sensey.getInstance().stop();
     }
-
 
 
 

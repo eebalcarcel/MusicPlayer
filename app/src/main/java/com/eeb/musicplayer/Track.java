@@ -1,17 +1,17 @@
 package com.eeb.musicplayer;
 
 import android.media.MediaMetadataRetriever;
-import android.os.Parcel;
 
 import java.io.File;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 
-public class Track extends File{
+class Track extends File{
 
     private String title;
-    private int length;
-    private int index;
+    private final int length;
+    private final int index;
 
     public Track(String pathname, int index) {
         super(pathname);
@@ -29,12 +29,8 @@ public class Track extends File{
         return title;
     }
 
-    public void setTitle(String name) {
+    public void setTitle(String title) {
         this.title = title;
-    }
-
-    public int getLength() {
-        return length;
     }
 
     /**
@@ -42,10 +38,10 @@ public class Track extends File{
      * @return String with 'hh:mm:ss' or 'mm:ss' if it doesn't have hours
      */
     public String getTime(){
-        String timeWithoutHours = String.format("%02d:%02d",
+        String timeWithoutHours = String.format(Locale.US, "%02d:%02d",
                 TimeUnit.MILLISECONDS.toMinutes(length),
                 TimeUnit.MILLISECONDS.toSeconds(length) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(length)));
-        String time = String.format("%02d:%02d:%02d", TimeUnit.MILLISECONDS.toHours(length),
+        String time = String.format(Locale.US,"%02d:%02d:%02d", TimeUnit.MILLISECONDS.toHours(length),
                 TimeUnit.MILLISECONDS.toMinutes(length) - TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(length)),
                 TimeUnit.MILLISECONDS.toSeconds(length) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(length)));
         return TimeUnit.MILLISECONDS.toHours(length)==0?timeWithoutHours:time;

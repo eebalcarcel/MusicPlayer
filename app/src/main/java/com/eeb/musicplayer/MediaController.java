@@ -5,9 +5,9 @@ import android.media.MediaPlayer;
 import java.io.IOException;
 import java.util.ArrayList;
 
-public class MediaController extends MediaPlayer {
+class MediaController extends MediaPlayer {
 
-    private ArrayList<Track> tracks;
+    private final ArrayList<Track> tracks;
 
 
     public MediaController(ArrayList<Track> tracks) {

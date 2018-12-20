@@ -1,18 +1,21 @@
 package com.eeb.musicplayer;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 
-public class OnSwipeListener implements View.OnTouchListener {
+@SuppressWarnings({"EmptyMethod", "WeakerAccess"})
+class OnSwipeListener implements View.OnTouchListener {
 
-    private GestureDetector gestureDetector;
+    private final GestureDetector gestureDetector;
 
     public OnSwipeListener(Context c) {
         gestureDetector = new GestureDetector(c, new GestureListener());
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     public boolean onTouch(final View view, final MotionEvent motionEvent) {
         return gestureDetector.onTouchEvent(motionEvent);
     }
@@ -30,7 +33,6 @@ public class OnSwipeListener implements View.OnTouchListener {
         // Determines the fling velocity and then fires the appropriate swipe event accordingly
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            boolean result = false;
             try {
                 float diffY = e2.getY() - e1.getY();
                 float diffX = e2.getX() - e1.getX();
@@ -54,19 +56,19 @@ public class OnSwipeListener implements View.OnTouchListener {
             } catch (Exception exception) {
                 exception.printStackTrace();
             }
-            return result;
+            return false;
         }
     }
 
-    public void onSwipeRight() {
+    void onSwipeRight() {
     }
 
-    public void onSwipeLeft() {
+    void onSwipeLeft() {
     }
 
-    public void onSwipeUp() {
+    void onSwipeUp() {
     }
 
-    public void onSwipeDown() {
+    void onSwipeDown() {
     }
 }

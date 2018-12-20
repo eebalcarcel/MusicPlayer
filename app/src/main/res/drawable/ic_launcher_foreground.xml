@@ -1,5 +1,6 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
+    xmlns:tools="http://schemas.android.com/tools"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="512"
@@ -12,9 +13,12 @@
                 android:startX="9.094947E-13"
                 android:endY="4.547474E-13"
                 android:endX="512"
-                android:type="linear">
-                <item android:offset="0" android:color="#FF0E1F4D"/>
-                <item android:offset="1" android:color="#FF11C2E2"/>
+                android:type="linear"
+                tools:targetApi="n">
+                <item android:offset="0" android:color="#FF0E1F4D"
+                    tools:targetApi="n" />
+                <item android:offset="1" android:color="#FF11C2E2"
+                    tools:targetApi="n" />
             </gradient>
         </aapt:attr>
     </path>
@@ -26,9 +30,12 @@
                 android:startX="285.1586"
                 android:endY="304.0313"
                 android:endX="188.6201"
-                android:type="linear">
-                <item android:offset="0" android:color="#FF0E1F4D"/>
-                <item android:offset="1" android:color="#FF11C2E2"/>
+                android:type="linear"
+                tools:targetApi="n">
+                <item android:offset="0" android:color="#FF0E1F4D"
+                    tools:targetApi="n" />
+                <item android:offset="1" android:color="#FF11C2E2"
+                    tools:targetApi="n" />
             </gradient>
         </aapt:attr>
     </path>
@@ -40,9 +47,12 @@
                 android:startX="306.0525"
                 android:endY="326.594"
                 android:endX="165.8556"
-                android:type="linear">
-                <item android:offset="0" android:color="#FFB5EFEF"/>
-                <item android:offset="1" android:color="#FF11C2E2"/>
+                android:type="linear"
+                tools:targetApi="n">
+                <item android:offset="0" android:color="#FFB5EFEF"
+                    tools:targetApi="n" />
+                <item android:offset="1" android:color="#FF11C2E2"
+                    tools:targetApi="n" />
             </gradient>
         </aapt:attr>
     </path>

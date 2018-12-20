@@ -1,5 +1,6 @@
 package com.eeb.musicplayer;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
@@ -13,7 +14,7 @@ import java.util.List;
 
 public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHolder> {
 
-    private Context context;
+    private final Context context;
     private List<Track> trackList;
 
     public TrackAdapter(Context context, List<Track> trackList) {
@@ -25,7 +26,7 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
     @Override
     public TrackViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int i) {
         LayoutInflater inflater = LayoutInflater.from(context);
-        View view = inflater.inflate(R.layout.list_layout, null);
+        @SuppressLint("InflateParams") View view = inflater.inflate(R.layout.list_layout, null);
         return new TrackViewHolder(view);
     }
 
@@ -46,9 +47,9 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
     class TrackViewHolder extends RecyclerView.ViewHolder {
 
         TextView trackTitle, trackLength;
-        ToggleButton pin;
+        final ToggleButton pin;
 
-        public TrackViewHolder(View view) {
+        TrackViewHolder(View view) {
             super(view);
 
             trackTitle = view.findViewById(R.id.trackTitle);
