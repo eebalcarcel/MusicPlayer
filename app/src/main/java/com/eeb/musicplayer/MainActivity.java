@@ -15,7 +15,6 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
-import android.widget.CompoundButton;
 import android.widget.SearchView;
 import android.widget.TextView;
 import android.widget.ToggleButton;
@@ -26,7 +25,6 @@ import com.google.gson.reflect.TypeToken;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -71,55 +69,19 @@ public class MainActivity extends AppCompatActivity {
         rViewTracks.setHasFixedSize(true);
         rViewTracks.setLayoutManager(new LinearLayoutManager(this));
 
+
         //Adds status bar height to the topBar height
-        topBar.post(new Runnable() {
-            @Override
-            public void run() {
-                topBar.setLayoutParams(new Constraints.LayoutParams(topBar.getWidth(), topBar.getHeight() + getStatusBarHeight()));
-            }
-        });
+        topBar.post(() -> topBar.setLayoutParams(new Constraints.LayoutParams(topBar.getWidth(), topBar.getHeight() + getStatusBarHeight())));
 
-
-        /*
-          Handles touches gestures
-          Shows searchBar when swipe down happens
-          Hides searchBar when swipe up happens
-         */
-        topBar.setOnTouchListener(new OnSwipeListener(this) {
-            @Override
-            public void onSwipeDown() {
-                openSearchBar();
-            }
-
-            @Override
-            public void onSwipeUp() {
-                closeSearchBar();
-            }
-
-        });
-
-        mediaButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (!mc.isPlaying()) {
-                    mc.start();
-                } else {
-                    mc.pause();
-                }
-            }
-        });
 
         //Populates tracks with the Tracks' JSON
         Intent intent = getIntent();
         String tracksJson = intent.getStringExtra("tracks");
-        tracks = (new Gson()).fromJson(tracksJson, new TypeToken<List<Track>>(){}.getType());
+        tracks = (new Gson()).fromJson(tracksJson, new TypeToken<List<Track>>() {
+        }.getType());
 
         if (tracks != null && !tracks.isEmpty()) {
-            Collections.sort(tracks, new Comparator<Track>() {
-                @Override
-                public int compare(Track s1, Track s2) {
-                    return s1.getTitle().compareToIgnoreCase(s2.getTitle());
-                }
-            });
+            Collections.sort(tracks, (o1, o2) -> o1.getTitle().compareToIgnoreCase(o2.getTitle()));
 
             mc = new MediaController(tracks);
             mc.prepareTrack(0);
@@ -130,6 +92,38 @@ public class MainActivity extends AppCompatActivity {
             currentTrack.setText(tracks.get(0).getTitle());
         }
 
+
+
+        /*
+          Handles searchBar's touches gestures
+          Shows it when swipe down happens
+          Hides it when swipe up happens
+         */
+        topBar.setOnTouchListener(new OnSwipeListener(this) {
+            @Override
+            void onSwipeDown() {
+                openSearchBar();
+            }
+
+            @Override
+            void onSwipeUp() {
+                closeSearchBar();
+            }
+
+        });
+
+        mediaButton.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (!mc.isPlaying()) {
+                mc.start();
+            } else {
+                mc.pause();
+            }
+        });
+
+        nextButton.setOnClickListener(v -> mc.next());
+
+        previousButton.setOnClickListener(v -> mc.previous());
+
     }
 
     @Override
@@ -137,7 +131,6 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         Sensey.getInstance().stop();
     }
-
 
 
     private int getStatusBarHeight() {
@@ -150,12 +143,7 @@ public class MainActivity extends AppCompatActivity {
                 .setDuration(250)
                 .translationY(-searchBar.getHeight())
                 .alpha(0f)
-                .withEndAction(new Runnable() {
-                    @Override
-                    public void run() {
-                        searchBar.setVisibility(View.GONE);
-                    }
-                });
+                .withEndAction(() -> searchBar.setVisibility(View.GONE));
 
         rViewTracks.setLayoutParams(new ConstraintLayout.LayoutParams(rViewTracks.getWidth(), rViewTracks.getHeight() + searchBar.getHeight()));
         rViewTracks.animate()
@@ -171,12 +159,7 @@ public class MainActivity extends AppCompatActivity {
                 .setDuration(100)
                 .translationY(searchBar.getHeight())
                 .alpha(1f)
-                .withEndAction(new Runnable() {
-                    @Override
-                    public void run() {
-                        searchBar.requestFocusFromTouch();
-                    }
-                });
+                .withEndAction(() -> searchBar.requestFocusFromTouch());
 
         rViewTracks.setLayoutParams(new ConstraintLayout.LayoutParams(rViewTracks.getWidth(), rViewTracks.getHeight() - searchBar.getHeight()));
         rViewTracks.animate()

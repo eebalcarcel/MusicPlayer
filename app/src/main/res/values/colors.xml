@@ -9,5 +9,5 @@
     <color name="track_time">#8bffffff</color>
     <color name="media_status">#d2d2d2</color>
     <color name="current_track">#7c9cab</color>
-    <color name="colorForeground">#000000</color>
+    <color name="colorForeground">#ffffff</color>
 </resources>

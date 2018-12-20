@@ -42,14 +42,11 @@ public class SplashActivity extends AppCompatActivity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
 
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                Intent intent = new Intent(SplashActivity.this, MainActivity.class);
-                intent.putExtra("tracks", tracksJson);
-                startActivity(intent);
-                finish();
-            }
+        new Handler().postDelayed(() -> {
+            Intent intent = new Intent(SplashActivity.this, MainActivity.class);
+            intent.putExtra("tracks", tracksJson);
+            startActivity(intent);
+            finish();
         }, SPLASH_TIME);
     }
 
@@ -80,12 +77,7 @@ public class SplashActivity extends AppCompatActivity {
                         }
 
                         if (!tracks.isEmpty()) {
-                            Collections.sort(tracks, new Comparator<Track>() {
-                                @Override
-                                public int compare(Track s1, Track s2) {
-                                    return s1.getTitle().compareToIgnoreCase(s2.getTitle());
-                                }
-                            });
+                            Collections.sort(tracks, (s1, s2) -> s1.getTitle().compareToIgnoreCase(s2.getTitle()));
 
                             Gson gson = new Gson();
                             tracksJson = gson.toJson(tracks);

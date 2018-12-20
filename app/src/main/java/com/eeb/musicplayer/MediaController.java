@@ -1,6 +1,7 @@
 package com.eeb.musicplayer;
 
 import android.media.MediaPlayer;
+import android.util.Log;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -8,38 +9,31 @@ import java.util.ArrayList;
 class MediaController extends MediaPlayer {
 
     private final ArrayList<Track> tracks;
-
+    private int currentTrackIndex;
 
     public MediaController(ArrayList<Track> tracks) {
         super();
         this.tracks = tracks;
-    }
-
-    public void next(){
-        //prepareTrack();
-    }
-
-    public void previous(){
 
     }
 
-    @Override
-    public void prepareAsync() throws IllegalStateException {
-        super.prepareAsync();
+    void next() {
+        currentTrackIndex++;
+        this.reset();
+        prepareTrack(currentTrackIndex);
+        this.start();
     }
 
-    @Override
-    public void start() throws IllegalStateException {
-        super.start();
+    void previous() {
+        currentTrackIndex--;
+        this.reset();
+        prepareTrack(currentTrackIndex);
+        this.start();
     }
 
-    @Override
-    public void stop() throws IllegalStateException {
-        super.stop();
-    }
-
-    public void prepareTrack(int trackIndex) {
+    void prepareTrack(int trackIndex) {
         try {
+            currentTrackIndex = trackIndex;
             this.setDataSource(tracks.get(trackIndex).getPath());
             this.prepareAsync();
         } catch (IOException e) {
@@ -47,4 +41,9 @@ class MediaController extends MediaPlayer {
         }
     }
 
+    @Override
+    public void start() throws IllegalStateException {
+        super.start();
+        setOnPreparedListener(player -> player.start());
+    }
 }
