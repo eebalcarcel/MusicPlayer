@@ -11,3 +11,5 @@
 /.idea/workspace.xml
 icon
 .idea/dictionaries/Esteban.xml
+app/src/androidTest
+app/src/test
