@@ -18,7 +18,6 @@ import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.SearchView;
 import android.widget.TextView;
-import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import com.github.nisrulz.sensey.Sensey;
@@ -33,16 +32,16 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
     private Button nextButton, previousButton;
     private ToggleButton mediaButton;
-    private TextView mediaStatus, currentSong;
+    private TextView mediaStatus, currentTrack;
     private Toolbar topBar, bottomBar;
-    private RecyclerView rViewSongs;
+    private RecyclerView rViewTracks;
     private SearchView searchBar;
-    private SongAdapter songAdapter;
-    private int currentSongIndex;
+    private TrackAdapter trackAdapter;
+    private int currentTrackIndex;
     private MediaController mc;
     private ConstraintLayout search_layout, content;
     private Window window;
-    private ArrayList<Song> songs;
+    private ArrayList<Track> tracks;
     int first = 0;
 
     @SuppressLint("ClickableViewAccessibility")
@@ -57,26 +56,21 @@ public class MainActivity extends AppCompatActivity {
         window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
         window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
 
-        //Populates songs with the Songs' JSON
-        Intent intent = getIntent();
-        String songsJson = intent.getStringExtra("songs");
-        songs = (new Gson()).fromJson(songsJson, new TypeToken<List<Song>>(){}.getType());
-
         mediaButton = findViewById(R.id.mediaButton);
         nextButton = findViewById(R.id.nextButton);
         previousButton = findViewById(R.id.previousButton);
         mediaStatus = findViewById(R.id.mediaStatus);
-        currentSong = findViewById(R.id.currentSong);
+        currentTrack = findViewById(R.id.currentTrack);
         topBar = findViewById(R.id.topBar);
         bottomBar = findViewById(R.id.bottomBar);
-        rViewSongs = findViewById(R.id.rViewSongs);
+        rViewTracks = findViewById(R.id.rViewTracks);
         search_layout = findViewById(R.id.search);
         content = findViewById(R.id.content);
         searchBar = findViewById(R.id.searchBar);
         searchBar.setIconifiedByDefault(false);
 
-        rViewSongs.setHasFixedSize(true);
-        rViewSongs.setLayoutManager(new LinearLayoutManager(this));
+        rViewTracks.setHasFixedSize(true);
+        rViewTracks.setLayoutManager(new LinearLayoutManager(this));
 
         //Adds status bar height to the topBar height
         topBar.post(new Runnable() {
@@ -114,21 +108,28 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-        if (!songs.isEmpty()) {
-            Collections.sort(songs, new Comparator<Song>() {
+
+
+        //Populates tracks with the Tracks' JSON
+        Intent intent = getIntent();
+        String tracksJson = intent.getStringExtra("tracks");
+        tracks = (new Gson()).fromJson(tracksJson, new TypeToken<List<Track>>(){}.getType());
+
+        if (tracks != null && !tracks.isEmpty()) {
+            Collections.sort(tracks, new Comparator<Track>() {
                 @Override
-                public int compare(Song s1, Song s2) {
+                public int compare(Track s1, Track s2) {
                     return s1.getTitle().compareToIgnoreCase(s2.getTitle());
                 }
             });
 
-            mc = new MediaController(songs);
+            mc = new MediaController(tracks);
             mc.prepareTrack(0);
-            songAdapter = new SongAdapter(this, songs);
-            rViewSongs.setAdapter(songAdapter);
+            trackAdapter = new TrackAdapter(this, tracks);
+            rViewTracks.setAdapter(trackAdapter);
 
             //TODO: Remove line
-            currentSong.setText(songs.get(0).getTitle());
+            currentTrack.setText(tracks.get(0).getTitle());
         }
 
     }
@@ -159,8 +160,8 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
 
-        rViewSongs.setLayoutParams(new ConstraintLayout.LayoutParams(rViewSongs.getWidth(), rViewSongs.getHeight() + searchBar.getHeight()));
-        rViewSongs.animate()
+        rViewTracks.setLayoutParams(new ConstraintLayout.LayoutParams(rViewTracks.getWidth(), rViewTracks.getHeight() + searchBar.getHeight()));
+        rViewTracks.animate()
                 .setDuration(100)
                 .translationY(0);
     }
@@ -180,8 +181,8 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
 
-        rViewSongs.setLayoutParams(new ConstraintLayout.LayoutParams(rViewSongs.getWidth(), rViewSongs.getHeight() - searchBar.getHeight()));
-        rViewSongs.animate()
+        rViewTracks.setLayoutParams(new ConstraintLayout.LayoutParams(rViewTracks.getWidth(), rViewTracks.getHeight() - searchBar.getHeight()));
+        rViewTracks.animate()
                 .setDuration(100)
                 .translationY(searchBar.getHeight());
     }

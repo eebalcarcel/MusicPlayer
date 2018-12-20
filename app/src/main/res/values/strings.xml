@@ -2,5 +2,5 @@
     <string name="app_name">Music Player</string>
     <string name="mediaStatusText">Playing</string>
     <string name="test_texto_largo">Texto largo largo largo largoTexto largo largo laTexto largo largo laTexto largo largo laTexto largo largo laTexto largo largo laTexto largo largo la</string>
-    <string name="test_song_length">24:60:60</string>
+    <string name="test_track_length">24:60:60</string>
 </resources>

@@ -11,13 +11,12 @@
         android:layout_height="wrap_content">
 
         <TextView
-            android:id="@+id/songTitle"
+            android:id="@+id/trackTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="20dp"
             android:layout_marginTop="10dp"
             android:layout_marginEnd="8dp"
-            android:fontFamily="@font/ps"
             android:maxLines="1"
             android:text="@string/test_texto_largo"
             android:textAlignment="viewStart"
@@ -29,18 +28,17 @@
             app:layout_constraintTop_toTopOf="parent" />
 
         <TextView
-            android:id="@+id/songLength"
+            android:id="@+id/trackLength"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="20dp"
             android:layout_marginBottom="10dp"
-            android:fontFamily="@font/ps"
-            android:text="@string/test_song_length"
-            android:textColor="@color/song_time"
+            android:text="@string/test_track_length"
+            android:textColor="@color/track_time"
             android:textSize="12sp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/songTitle" />
+            app:layout_constraintTop_toBottomOf="@+id/trackTitle" />
 
         <ToggleButton
             android:id="@+id/pin"

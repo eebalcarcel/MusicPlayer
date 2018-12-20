@@ -4,15 +4,15 @@ import android.media.MediaPlayer;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
 
 public class MediaController extends MediaPlayer {
 
-    ArrayList<Song> songs;
+    private ArrayList<Track> tracks;
 
-    public MediaController(ArrayList<Song> songs) {
+
+    public MediaController(ArrayList<Track> tracks) {
         super();
-        this.songs = songs;
+        this.tracks = tracks;
     }
 
     public void next(){
@@ -40,7 +40,7 @@ public class MediaController extends MediaPlayer {
 
     public void prepareTrack(int trackIndex) {
         try {
-            this.setDataSource(songs.get(trackIndex).getPath());
+            this.setDataSource(tracks.get(trackIndex).getPath());
             this.prepareAsync();
         } catch (IOException e) {
             e.printStackTrace();

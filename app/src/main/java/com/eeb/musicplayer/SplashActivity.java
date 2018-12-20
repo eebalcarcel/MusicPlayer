@@ -27,7 +27,7 @@ import java.util.List;
 public class SplashActivity extends AppCompatActivity {
     private static final int READ_EXTERNAL_STORAGE_PERMISSION_REQUEST = 1;
     private static final int SPLASH_TIME = 250;
-    private String songsJson;
+    private String tracksJson;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,7 +46,7 @@ public class SplashActivity extends AppCompatActivity {
             @Override
             public void run() {
                 Intent intent = new Intent(SplashActivity.this, MainActivity.class);
-                intent.putExtra("songs", songsJson);
+                intent.putExtra("tracks", tracksJson);
                 startActivity(intent);
                 finish();
             }
@@ -55,7 +55,7 @@ public class SplashActivity extends AppCompatActivity {
 
 
 
-    //Populates songsJson with the files inside the Music folder
+    //Populates tracksJson with the files inside the Music folder
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {
         switch (requestCode) {
@@ -65,30 +65,30 @@ public class SplashActivity extends AppCompatActivity {
                     File directory = new File(path);
                     List<File> files = Arrays.asList(directory.listFiles());
                     if (files != null) {
-                        ArrayList<Song> songs = new ArrayList<>();
+                        ArrayList<Track> tracks = new ArrayList<>();
 
                         for (int i = 0; i < files.size(); i++){
                             String file = files.get(i).getPath();
                             try {
                                 String fileName = URLEncoder.encode(file, "UTF-8");
                                 if (URLConnection.guessContentTypeFromName(fileName).startsWith("audio")) {
-                                    songs.add(new Song(file, i));
+                                    tracks.add(new Track(file, i));
                                 }
                             } catch (UnsupportedEncodingException e) {
                                 e.printStackTrace();
                             }
                         }
 
-                        if (!songs.isEmpty()) {
-                            Collections.sort(songs, new Comparator<Song>() {
+                        if (!tracks.isEmpty()) {
+                            Collections.sort(tracks, new Comparator<Track>() {
                                 @Override
-                                public int compare(Song s1, Song s2) {
+                                public int compare(Track s1, Track s2) {
                                     return s1.getTitle().compareToIgnoreCase(s2.getTitle());
                                 }
                             });
 
                             Gson gson = new Gson();
-                            songsJson = gson.toJson(songs);
+                            tracksJson = gson.toJson(tracks);
                         }
                     }
                 } else {

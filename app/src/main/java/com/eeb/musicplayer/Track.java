@@ -7,13 +7,13 @@ import java.io.File;
 import java.util.concurrent.TimeUnit;
 
 
-public class Song extends File{
+public class Track extends File{
 
     private String title;
     private int length;
     private int index;
 
-    public Song(String pathname, int index) {
+    public Track(String pathname, int index) {
         super(pathname);
         int pos = this.getName().lastIndexOf(".");
         this.title = pos>0?this.getName().substring(0, pos):this.getName();
