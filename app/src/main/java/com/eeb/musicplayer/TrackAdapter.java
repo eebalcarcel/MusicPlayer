@@ -37,7 +37,7 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
         Track track = tracks.get(i);
 
         trackViewHolder.trackTitle.setText(track.getTitle());
-        trackViewHolder.trackDuration.setText(track.getTime());
+        trackViewHolder.trackDuration.setText(Track.getFormattedDuration(track.getDuration()));
         //TODO: trackViewHolder.pin.setChecked(track.isPinned());
     }
 

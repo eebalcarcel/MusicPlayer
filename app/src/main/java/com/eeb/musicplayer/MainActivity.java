@@ -37,7 +37,7 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.Recy
     private final static int UPDATE_SEEKBAR_TIME = 1000;
     private Button nextButton, previousButton;
     private ToggleButton mediaButton;
-    private TextView mediaStatus, txtVcurrentTrack;
+    private TextView mediaStatus, txtVcurrentTrack, mc_trackDuration, elapsedTime;
     private Toolbar topBar, bottomBar;
     private RecyclerView rViewTracks;
     private SearchView searchBar;
@@ -79,6 +79,8 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.Recy
         search_layout = findViewById(R.id.search);
         content = findViewById(R.id.content);
         trackSeekBar = findViewById(R.id.trackSeekBar);
+        mc_trackDuration = findViewById(R.id.mc_trackDuration);
+        elapsedTime = findViewById(R.id.mc_currentDuration);
         searchBar = findViewById(R.id.searchBar);
         searchBar.setIconifiedByDefault(false);
 
@@ -95,6 +97,7 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.Recy
         String tracksJson = intent.getStringExtra("tracks");
         tracks = (new Gson()).fromJson(tracksJson, new TypeToken<List<Track>>() {
         }.getType());
+
 
         /*
           Handles searchBar's touches gestures
@@ -144,19 +147,18 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.Recy
 
             mediaButton.setOnClickListener(v -> {
                 if (!mc.isPlaying()) {
+                    mediaStatus.setText(MEDIA_STATUS_PLAYING);
                     doMediaAction(MEDIA_ACTION.START, null);
                 } else {
+                    mediaStatus.setText(MEDIA_STATUS_PAUSED);
                     doMediaAction(MEDIA_ACTION.PAUSE, null);
                 }
             });
 
-            nextButton.setOnClickListener(v -> {
-                doMediaAction(MEDIA_ACTION.NEXT, null);
-            });
+            nextButton.setOnClickListener(v -> doMediaAction(MEDIA_ACTION.NEXT, null));
 
-            previousButton.setOnClickListener(v -> {
-                doMediaAction(MEDIA_ACTION.PREVIOUS, null);
-            });
+            previousButton.setOnClickListener(v -> doMediaAction(MEDIA_ACTION.PREVIOUS, null));
+
         }
 
     }
@@ -217,20 +219,23 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.Recy
                     mediaStatus.setText(MEDIA_STATUS_PLAYING);
                     break;
             }
-            startSeekBarUpdate();
+            updateTrackProgress();
         }
     }
 
 
     /**
+     * Sets the total track's duration and updates the elapsed time
      * Sets seek bar's max to the duration of the track and updates its progress every second
      */
-    private void startSeekBarUpdate() {
+    private void updateTrackProgress() {
+        mc_trackDuration.setText(Track.getFormattedDuration(mc.getCurrentTrack().getDuration()));
         trackSeekBar.setMax(mc.getCurrentTrack().getDuration());
         MainActivity.this.runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 trackSeekBar.setProgress(mc.getCurrentPosition());
+                elapsedTime.setText(Track.getFormattedDuration(mc.getCurrentPosition()));
                 new Handler().postDelayed(this, UPDATE_SEEKBAR_TIME);
             }
         });
