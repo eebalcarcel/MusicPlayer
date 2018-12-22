@@ -4,6 +4,9 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.constraint.ConstraintLayout;
 import android.support.constraint.Constraints;
 import android.support.v7.app.AppCompatActivity;
@@ -16,6 +19,7 @@ import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.SearchView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
@@ -27,19 +31,30 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements TrackAdapter.RecyclerViewClickListener {
+    private final static String MEDIA_STATUS_PLAYING = "Playing";
+    private final static String MEDIA_STATUS_PAUSED = "Paused";
+    private final static int UPDATE_SEEKBAR_TIME = 1000;
     private Button nextButton, previousButton;
     private ToggleButton mediaButton;
-    private TextView mediaStatus, currentTrack;
+    private TextView mediaStatus, txtVcurrentTrack;
     private Toolbar topBar, bottomBar;
     private RecyclerView rViewTracks;
     private SearchView searchBar;
     private TrackAdapter trackAdapter;
-    private int currentTrackIndex;
     private MediaController mc;
     private ConstraintLayout search_layout, content;
+    private SeekBar trackSeekBar;
     private Window window;
     private ArrayList<Track> tracks;
+
+
+    public enum MEDIA_ACTION {
+        START,
+        PAUSE,
+        NEXT,
+        PREVIOUS
+    }
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
@@ -57,12 +72,13 @@ public class MainActivity extends AppCompatActivity {
         nextButton = findViewById(R.id.nextButton);
         previousButton = findViewById(R.id.previousButton);
         mediaStatus = findViewById(R.id.mediaStatus);
-        currentTrack = findViewById(R.id.currentTrack);
+        txtVcurrentTrack = findViewById(R.id.txtVcurrentTrack);
         topBar = findViewById(R.id.topBar);
         bottomBar = findViewById(R.id.bottomBar);
         rViewTracks = findViewById(R.id.rViewTracks);
         search_layout = findViewById(R.id.search);
         content = findViewById(R.id.content);
+        trackSeekBar = findViewById(R.id.trackSeekBar);
         searchBar = findViewById(R.id.searchBar);
         searchBar.setIconifiedByDefault(false);
 
@@ -79,20 +95,6 @@ public class MainActivity extends AppCompatActivity {
         String tracksJson = intent.getStringExtra("tracks");
         tracks = (new Gson()).fromJson(tracksJson, new TypeToken<List<Track>>() {
         }.getType());
-
-        if (tracks != null && !tracks.isEmpty()) {
-            Collections.sort(tracks, (o1, o2) -> o1.getTitle().compareToIgnoreCase(o2.getTitle()));
-
-            mc = new MediaController(tracks);
-            mc.prepareTrack(0);
-            trackAdapter = new TrackAdapter(this, tracks);
-            rViewTracks.setAdapter(trackAdapter);
-
-            //TODO: Remove line
-            currentTrack.setText(tracks.get(0).getTitle());
-        }
-
-
 
         /*
           Handles searchBar's touches gestures
@@ -112,19 +114,53 @@ public class MainActivity extends AppCompatActivity {
 
         });
 
-        mediaButton.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (!mc.isPlaying()) {
-                mc.start();
-            } else {
-                mc.pause();
+        //Fast forwards the song to where the user moved the seek bar's progress
+        trackSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if(mc != null && fromUser){
+                    mc.seekTo(progress);
+                }
             }
         });
 
-        nextButton.setOnClickListener(v -> mc.next());
+        if (tracks != null && !tracks.isEmpty()) {
+            Collections.sort(tracks, (o1, o2) -> o1.getTitle().compareToIgnoreCase(o2.getTitle()));
 
-        previousButton.setOnClickListener(v -> mc.previous());
+            mc = new MediaController(tracks);
+            trackAdapter = new TrackAdapter(this, tracks, this);
+            rViewTracks.setAdapter(trackAdapter);
+
+            mediaButton.setOnClickListener(v -> {
+                if (!mc.isPlaying()) {
+                    doMediaAction(MEDIA_ACTION.START, null);
+                } else {
+                    doMediaAction(MEDIA_ACTION.PAUSE, null);
+                }
+            });
+
+            nextButton.setOnClickListener(v -> {
+                doMediaAction(MEDIA_ACTION.NEXT, null);
+            });
+
+            previousButton.setOnClickListener(v -> {
+                doMediaAction(MEDIA_ACTION.PREVIOUS, null);
+            });
+        }
 
     }
+
 
     @Override
     protected void onDestroy() {
@@ -132,6 +168,73 @@ public class MainActivity extends AppCompatActivity {
         Sensey.getInstance().stop();
     }
 
+    @Override
+    public void recyclerViewListClicked(View v, int position) {
+        Track selectedTrack = tracks.get(position);
+        selectedTrack.getTitle();
+        doMediaAction(MEDIA_ACTION.START, selectedTrack);
+    }
+
+
+    /**
+     * Performs a MediaController action
+     *
+     * @param action The action that is going to be performed
+     * @param track  The track that is going to be played. Can be null
+     */
+    private void doMediaAction(@NonNull MEDIA_ACTION action, @Nullable Track track) {
+        if (mc.getState() != MediaController.STATE.IDLE || mc.getState() != MediaController.STATE.STOPPED) {
+            switch (action) {
+                case START:
+                    if (track == null) {
+                        //TODO Add last played song before closing app
+                        /*trackSeekBar.setMax();
+                        mc.prepareTrack();*/
+                        mc.start();
+                    } else {
+                        mc.prepareTrack(track);
+                        trackSeekBar.setMax(track.getDuration());
+                        txtVcurrentTrack.setText(track.getTitle());
+                    }
+                    mediaButton.setChecked(true);
+                    mediaStatus.setText(MEDIA_STATUS_PLAYING);
+                    break;
+                case PAUSE:
+                    mc.pause();
+                    mediaButton.setChecked(false);
+                    mediaStatus.setText(MEDIA_STATUS_PAUSED);
+                    break;
+                case NEXT:
+                    mc.next();
+                    txtVcurrentTrack.setText(mc.getCurrentTrack().getTitle());
+                    mediaButton.setChecked(true);
+                    mediaStatus.setText(MEDIA_STATUS_PLAYING);
+                    break;
+                case PREVIOUS:
+                    mc.previous();
+                    txtVcurrentTrack.setText(mc.getCurrentTrack().getTitle());
+                    mediaButton.setChecked(true);
+                    mediaStatus.setText(MEDIA_STATUS_PLAYING);
+                    break;
+            }
+            startSeekBarUpdate();
+        }
+    }
+
+
+    /**
+     * Sets seek bar's max to the duration of the track and updates its progress every second
+     */
+    private void startSeekBarUpdate() {
+        trackSeekBar.setMax(mc.getCurrentTrack().getDuration());
+        MainActivity.this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                trackSeekBar.setProgress(mc.getCurrentPosition());
+                new Handler().postDelayed(this, UPDATE_SEEKBAR_TIME);
+            }
+        });
+    }
 
     private int getStatusBarHeight() {
         int resourceId = getResources().getIdentifier("status_bar_height", "dimen", "android");
@@ -166,4 +269,6 @@ public class MainActivity extends AppCompatActivity {
                 .setDuration(100)
                 .translationY(searchBar.getHeight());
     }
+
+
 }

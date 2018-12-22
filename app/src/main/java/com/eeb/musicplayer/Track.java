@@ -10,19 +10,23 @@ import java.util.concurrent.TimeUnit;
 class Track extends File{
 
     private String title;
-    private final int length;
-    private final int index;
+    private final int duration;
+    private final int id;
 
-    public Track(String pathname, int index) {
+    public Track(int id, String pathname) {
         super(pathname);
+
+        //Remove the filename extension
         int pos = this.getName().lastIndexOf(".");
         this.title = pos>0?this.getName().substring(0, pos):this.getName();
+
+        //Gets the duration of the track
         MediaMetadataRetriever mmr = new MediaMetadataRetriever();
         mmr.setDataSource(this.getPath());
-        this.length = Integer.parseInt(mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
+        this.duration = Integer.parseInt(mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
         mmr.release();
 
-        this.index = index;
+        this.id = id;
     }
 
     public String getTitle() {
@@ -33,17 +37,25 @@ class Track extends File{
         this.title = title;
     }
 
+    public int getId() {
+        return id;
+    }
+
+    public int getDuration() {
+        return duration;
+    }
+
     /**
      *
      * @return String with 'hh:mm:ss' or 'mm:ss' if it doesn't have hours
      */
     public String getTime(){
         String timeWithoutHours = String.format(Locale.US, "%02d:%02d",
-                TimeUnit.MILLISECONDS.toMinutes(length),
-                TimeUnit.MILLISECONDS.toSeconds(length) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(length)));
-        String time = String.format(Locale.US,"%02d:%02d:%02d", TimeUnit.MILLISECONDS.toHours(length),
-                TimeUnit.MILLISECONDS.toMinutes(length) - TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(length)),
-                TimeUnit.MILLISECONDS.toSeconds(length) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(length)));
-        return TimeUnit.MILLISECONDS.toHours(length)==0?timeWithoutHours:time;
+                TimeUnit.MILLISECONDS.toMinutes(duration),
+                TimeUnit.MILLISECONDS.toSeconds(duration) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(duration)));
+        String time = String.format(Locale.US,"%02d:%02d:%02d", TimeUnit.MILLISECONDS.toHours(duration),
+                TimeUnit.MILLISECONDS.toMinutes(duration) - TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(duration)),
+                TimeUnit.MILLISECONDS.toSeconds(duration) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(duration)));
+        return TimeUnit.MILLISECONDS.toHours(duration)==0?timeWithoutHours:time;
     }
 }
