@@ -81,7 +81,7 @@
                     app:layout_constraintStart_toStartOf="parent" />
 
                 <TextView
-                    android:id="@+id/currentTrack"
+                    android:id="@+id/txtVcurrentTrack"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
@@ -136,6 +136,7 @@
         app:layout_constraintBottom_toBottomOf="parent">
 
         <SeekBar
+            android:id="@+id/trackSeekBar"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginBottom="52dp"

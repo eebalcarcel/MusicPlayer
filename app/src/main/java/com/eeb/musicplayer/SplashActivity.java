@@ -65,11 +65,11 @@ public class SplashActivity extends AppCompatActivity {
                         ArrayList<Track> tracks = new ArrayList<>();
 
                         for (int i = 0; i < files.size(); i++){
-                            String file = files.get(i).getPath();
+                            String filePath = files.get(i).getPath();
                             try {
-                                String fileName = URLEncoder.encode(file, "UTF-8");
+                                String fileName = URLEncoder.encode(filePath, "UTF-8");
                                 if (URLConnection.guessContentTypeFromName(fileName).startsWith("audio")) {
-                                    tracks.add(new Track(file, i));
+                                    tracks.add(new Track(i, filePath));
                                 }
                             } catch (UnsupportedEncodingException e) {
                                 e.printStackTrace();
@@ -86,6 +86,7 @@ public class SplashActivity extends AppCompatActivity {
                 } else {
                     finishAndRemoveTask();
                 }
+                break;
             }
         }
     }

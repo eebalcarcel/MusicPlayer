@@ -10,16 +10,18 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
-import java.util.List;
+import java.util.ArrayList;
 
 public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHolder> {
 
     private final Context context;
-    private List<Track> trackList;
+    private ArrayList<Track> tracks;
+    private RecyclerViewClickListener trackClickedListener;
 
-    public TrackAdapter(Context context, List<Track> trackList) {
+    public TrackAdapter(Context context, ArrayList<Track> tracks, RecyclerViewClickListener trackClickedListener) {
         this.context = context;
-        this.trackList = trackList;
+        this.tracks = tracks;
+        this.trackClickedListener = trackClickedListener;
     }
 
     @NonNull
@@ -32,29 +34,40 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
 
     @Override
     public void onBindViewHolder(@NonNull TrackViewHolder trackViewHolder, int i) {
-        Track track = trackList.get(i);
+        Track track = tracks.get(i);
 
         trackViewHolder.trackTitle.setText(track.getTitle());
-        trackViewHolder.trackLength.setText(track.getTime());
+        trackViewHolder.trackDuration.setText(track.getTime());
         //TODO: trackViewHolder.pin.setChecked(track.isPinned());
     }
 
     @Override
     public int getItemCount() {
-        return trackList.size();
+        return tracks.size();
     }
 
-    class TrackViewHolder extends RecyclerView.ViewHolder {
+    class TrackViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
-        TextView trackTitle, trackLength;
+        TextView trackTitle, trackDuration;
         final ToggleButton pin;
 
         TrackViewHolder(View view) {
             super(view);
 
             trackTitle = view.findViewById(R.id.trackTitle);
-            trackLength = view.findViewById(R.id.trackLength);
+            trackDuration = view.findViewById(R.id.trackDuration);
             pin = view.findViewById(R.id.pin);
+            view.setOnClickListener(this);
+        }
+
+        @Override
+        public void onClick(View v) {
+            trackClickedListener.recyclerViewListClicked(v, this.getAdapterPosition());
         }
     }
+
+    interface RecyclerViewClickListener {
+        void recyclerViewListClicked(View v, int position);
+    }
 }
+
