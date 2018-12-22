@@ -1,4 +1,4 @@
 <resources>
     <string name="app_name">Music Player</string>
-    <string name="mediaStatusText">Playing</string>
+    <string name="mediaStatusText">Paused</string>
 </resources>
