@@ -6,6 +6,7 @@ import android.support.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 
+@SuppressWarnings("WeakerAccess")
 class MediaPlayerController extends MediaPlayer {
 
     private final ArrayList<Track> tracks;
@@ -25,7 +26,7 @@ class MediaPlayerController extends MediaPlayer {
         super();
         this.tracks = tracks;
         setState(STATE.IDLE);
-        setOnPreparedListener(mp -> mp.start());
+        setOnPreparedListener(MediaPlayer::start);
     }
 
     void next() {

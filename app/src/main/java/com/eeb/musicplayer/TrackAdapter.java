@@ -15,8 +15,8 @@ import java.util.ArrayList;
 public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHolder> {
 
     private final Context context;
-    private ArrayList<Track> tracks;
-    private RecyclerViewClickListener trackClickedListener;
+    private final ArrayList<Track> tracks;
+    private final RecyclerViewClickListener trackClickedListener;
 
     public TrackAdapter(Context context, ArrayList<Track> tracks, RecyclerViewClickListener trackClickedListener) {
         this.context = context;
@@ -46,6 +46,7 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
         return tracks.size();
     }
 
+    @SuppressWarnings("CanBeFinal")
     class TrackViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
         TextView trackTitle, trackDuration;
@@ -62,12 +63,12 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
 
         @Override
         public void onClick(View v) {
-            trackClickedListener.recyclerViewListClicked(v, this.getAdapterPosition());
+            trackClickedListener.recyclerViewListClicked(this.getAdapterPosition());
         }
     }
 
     interface RecyclerViewClickListener {
-        void recyclerViewListClicked(View v, int position);
+        void recyclerViewListClicked(int position);
     }
 }
 

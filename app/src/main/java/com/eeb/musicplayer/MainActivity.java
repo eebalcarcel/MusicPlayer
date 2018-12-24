@@ -3,14 +3,12 @@ package com.eeb.musicplayer;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.media.AudioAttributes;
 import android.media.AudioFocusRequest;
 import android.media.AudioManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -21,7 +19,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -33,13 +30,8 @@ import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import com.github.nisrulz.sensey.Sensey;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 
-import java.io.File;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements TrackAdapter.RecyclerViewClickListener {
     private static final int READ_EXTERNAL_STORAGE_PERMISSION_REQUEST = 1;
@@ -83,7 +75,7 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.Recy
         setContentView(R.layout.activity_main);
         window = getWindow();
 
-        //If granted gets tracks, initilizes mcp and trackAdapter and sets trackAdapter to rViewTracks
+        //If granted gets tracks, initializes mcp and trackAdapter and sets trackAdapter to rViewTracks
         ActivityCompat.requestPermissions(MainActivity.this,
                 new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
                 READ_EXTERNAL_STORAGE_PERMISSION_REQUEST);
@@ -206,7 +198,7 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.Recy
     }
 
     @Override
-    public void recyclerViewListClicked(View v, int position) {
+    public void recyclerViewListClicked(int position) {
         doMediaAction(MEDIA_ACTION.START, tracks.get(position));
     }
 

@@ -7,6 +7,7 @@ import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 
+@SuppressWarnings("unused")
 class Track extends File{
 
     private String title;
