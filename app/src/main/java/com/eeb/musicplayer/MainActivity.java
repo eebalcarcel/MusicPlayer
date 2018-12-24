@@ -3,7 +3,12 @@ package com.eeb.musicplayer;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
+import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
+import android.media.AudioManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -13,6 +18,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -27,6 +33,7 @@ import com.github.nisrulz.sensey.Sensey;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -34,7 +41,10 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity implements TrackAdapter.RecyclerViewClickListener {
     private final static String MEDIA_STATUS_PLAYING = "Playing";
     private final static String MEDIA_STATUS_PAUSED = "Paused";
+    private final static String MEDIA_STATUS_NO_TRACKS = "Not started";
+    private final static String CURRENT_TRACK_NO_TRACKS = "There are no tracks in the folder Music";
     private final static int UPDATE_SEEKBAR_TIME = 1000;
+    private final static float VOLUME_CHANGE_PERCENTAGE = 0.5f; //Percentage that is the volume is lowered or raised
     private Button nextButton, previousButton;
     private ToggleButton mediaButton;
     private TextView mediaStatus, txtVcurrentTrack, mc_trackDuration, elapsedTime;
@@ -42,18 +52,25 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.Recy
     private RecyclerView rViewTracks;
     private SearchView searchBar;
     private TrackAdapter trackAdapter;
-    private MediaController mc;
+    private MediaPlayerController mpc;
     private ConstraintLayout search_layout, content;
     private SeekBar trackSeekBar;
     private Window window;
     private ArrayList<Track> tracks;
+    private AudioManager.OnAudioFocusChangeListener afChangeListener;
+    private AudioManager audioManager;
+    private AudioFocusRequest audioFocusRequest;
+    private AudioAttributes audioAttributes;
+    private Runnable updateTrackProgressRunnable;
+    private Handler updateTrackProgressHandler;
 
 
     public enum MEDIA_ACTION {
         START,
         PAUSE,
         NEXT,
-        PREVIOUS
+        PREVIOUS,
+        STOP
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -62,6 +79,22 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.Recy
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         window = getWindow();
+
+        audioManager = (AudioManager) this.getSystemService(Context.AUDIO_SERVICE);
+        afChangeListener = focusChange -> {
+            switch (focusChange) {
+                case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
+                case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
+                    doMediaAction(MEDIA_ACTION.PAUSE, null);
+                    break;
+                case AudioManager.AUDIOFOCUS_GAIN:
+                    doMediaAction(MEDIA_ACTION.START, null);
+                    break;
+                case AudioManager.AUDIOFOCUS_LOSS:
+                    doMediaAction(MEDIA_ACTION.STOP, null);
+                    break;
+            }
+        };
 
         //Makes the status bar transparent
         window.setStatusBarColor(0x00000000);
@@ -90,14 +123,6 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.Recy
 
         //Adds status bar height to the topBar height
         topBar.post(() -> topBar.setLayoutParams(new Constraints.LayoutParams(topBar.getWidth(), topBar.getHeight() + getStatusBarHeight())));
-
-
-        //Populates tracks with the Tracks' JSON
-        Intent intent = getIntent();
-        String tracksJson = intent.getStringExtra("tracks");
-        tracks = (new Gson()).fromJson(tracksJson, new TypeToken<List<Track>>() {
-        }.getType());
-
 
         /*
           Handles searchBar's touches gestures
@@ -132,37 +157,50 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.Recy
 
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if(mc != null && fromUser){
-                    mc.seekTo(progress);
+                if (mpc != null && fromUser) {
+                    mpc.seekTo(progress);
+                    elapsedTime.setText(Track.getFormattedDuration(mpc.getCurrentPosition()));
                 }
             }
         });
 
+        //Populates tracks with the Tracks' JSON
+        Intent intent = getIntent();
+        String tracksJson = intent.getStringExtra("tracks");
+        tracks = (new Gson()).fromJson(tracksJson, new TypeToken<List<Track>>() {
+        }.getType());
+
         if (tracks != null && !tracks.isEmpty()) {
             Collections.sort(tracks, (o1, o2) -> o1.getTitle().compareToIgnoreCase(o2.getTitle()));
 
-            mc = new MediaController(tracks);
+            mpc = new MediaPlayerController(tracks);
             trackAdapter = new TrackAdapter(this, tracks, this);
             rViewTracks.setAdapter(trackAdapter);
-
-            mediaButton.setOnClickListener(v -> {
-                if (!mc.isPlaying()) {
-                    mediaStatus.setText(MEDIA_STATUS_PLAYING);
-                    doMediaAction(MEDIA_ACTION.START, null);
-                } else {
-                    mediaStatus.setText(MEDIA_STATUS_PAUSED);
-                    doMediaAction(MEDIA_ACTION.PAUSE, null);
-                }
-            });
-
-            nextButton.setOnClickListener(v -> doMediaAction(MEDIA_ACTION.NEXT, null));
-
-            previousButton.setOnClickListener(v -> doMediaAction(MEDIA_ACTION.PREVIOUS, null));
-
         }
 
+        mediaButton.setOnClickListener(v -> {
+            if (!mpc.isPlaying()) {
+                mediaStatus.setText(MEDIA_STATUS_PLAYING);
+                doMediaAction(MEDIA_ACTION.START, null);
+            } else {
+                mediaStatus.setText(MEDIA_STATUS_PAUSED);
+                doMediaAction(MEDIA_ACTION.PAUSE, null);
+            }
+        });
+        nextButton.setOnClickListener(v -> doMediaAction(MEDIA_ACTION.NEXT, null));
+        previousButton.setOnClickListener(v -> doMediaAction(MEDIA_ACTION.PREVIOUS, null));
     }
 
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) {
+            //Initializes mpc when it has been stopped by another app
+            if (mpc != null && mpc.getState() == MediaPlayerController.STATE.STOPPED && tracks != null && !tracks.isEmpty()) {
+                mpc = new MediaPlayerController(tracks);
+            }
+        }
+    }
 
     @Override
     protected void onDestroy() {
@@ -172,73 +210,102 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.Recy
 
     @Override
     public void recyclerViewListClicked(View v, int position) {
-        Track selectedTrack = tracks.get(position);
-        selectedTrack.getTitle();
-        doMediaAction(MEDIA_ACTION.START, selectedTrack);
+        doMediaAction(MEDIA_ACTION.START, tracks.get(position));
     }
 
 
     /**
-     * Performs a MediaController action
+     * Performs a MediaPlayerController action
      *
      * @param action The action that is going to be performed
      * @param track  The track that is going to be played. Can be null
      */
     private void doMediaAction(@NonNull MEDIA_ACTION action, @Nullable Track track) {
-        if (mc.getState() != MediaController.STATE.IDLE || mc.getState() != MediaController.STATE.STOPPED) {
-            switch (action) {
-                case START:
-                    if (track == null) {
-                        //TODO Add last played song before closing app
+            if (mpc.getState() != MediaPlayerController.STATE.IDLE || mpc.getState() != MediaPlayerController.STATE.STOPPED) {
+                switch (action) {
+                    case START:
+                        //Requests audio focus
+                        int afRequestResult;
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            audioAttributes = new AudioAttributes.Builder()
+                                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                                    .build();
+                            audioFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                                    .setAudioAttributes(audioAttributes)
+                                    .setOnAudioFocusChangeListener(afChangeListener).build();
+                            afRequestResult = audioManager.requestAudioFocus(audioFocusRequest);
+                        } else {
+                            afRequestResult = audioManager.requestAudioFocus(afChangeListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
+                        }
+
+                        if (afRequestResult == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+                            if (track == null) {
+                                //TODO Add last played song before closing app
                         /*trackSeekBar.setMax();
-                        mc.prepareTrack();*/
-                        mc.start();
-                    } else {
-                        mc.prepareTrack(track);
-                        trackSeekBar.setMax(track.getDuration());
-                        txtVcurrentTrack.setText(track.getTitle());
-                    }
+                        mpc.prepareTrack();*/
+                                mpc.start();
+                            } else {
+                                mpc.prepareTrack(track);
+                            }
+                        }
+
+                        updateTrackProgress();
+                        break;
+
+                    case PAUSE:
+                        mpc.pause();
+                        break;
+
+                    case NEXT:
+                        mpc.next();
+                        break;
+
+                    case PREVIOUS:
+                        mpc.previous();
+                        break;
+
+                    case STOP:
+                        updateTrackProgressHandler.removeCallbacks(updateTrackProgressRunnable);
+                        mpc.stop();
+                        mpc.release();
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            audioManager.abandonAudioFocusRequest(audioFocusRequest);
+                        } else {
+                            audioManager.abandonAudioFocus(afChangeListener);
+                        }
+                        break;
+                }
+
+                if (action != MEDIA_ACTION.PAUSE && action != MEDIA_ACTION.STOP) {
+                    txtVcurrentTrack.setText(mpc.getCurrentTrack().getTitle());
                     mediaButton.setChecked(true);
                     mediaStatus.setText(MEDIA_STATUS_PLAYING);
-                    break;
-                case PAUSE:
-                    mc.pause();
+                } else {
                     mediaButton.setChecked(false);
                     mediaStatus.setText(MEDIA_STATUS_PAUSED);
-                    break;
-                case NEXT:
-                    mc.next();
-                    txtVcurrentTrack.setText(mc.getCurrentTrack().getTitle());
-                    mediaButton.setChecked(true);
-                    mediaStatus.setText(MEDIA_STATUS_PLAYING);
-                    break;
-                case PREVIOUS:
-                    mc.previous();
-                    txtVcurrentTrack.setText(mc.getCurrentTrack().getTitle());
-                    mediaButton.setChecked(true);
-                    mediaStatus.setText(MEDIA_STATUS_PLAYING);
-                    break;
+                }
             }
-            updateTrackProgress();
-        }
+
     }
 
 
     /**
-     * Sets the total track's duration and updates the elapsed time
-     * Sets seek bar's max to the duration of the track and updates its progress every second
+     * Sets the total duration of the track duration and updates the elapsed time
+     * Sets the max progress of the seek bar to the duration of the track and updates its progress every second
      */
     private void updateTrackProgress() {
-        mc_trackDuration.setText(Track.getFormattedDuration(mc.getCurrentTrack().getDuration()));
-        trackSeekBar.setMax(mc.getCurrentTrack().getDuration());
-        MainActivity.this.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                trackSeekBar.setProgress(mc.getCurrentPosition());
-                elapsedTime.setText(Track.getFormattedDuration(mc.getCurrentPosition()));
-                new Handler().postDelayed(this, UPDATE_SEEKBAR_TIME);
-            }
-        });
+        mc_trackDuration.setText(Track.getFormattedDuration(mpc.getCurrentTrack().getDuration()));
+        trackSeekBar.setMax(mpc.getCurrentTrack().getDuration());
+
+        updateTrackProgressHandler = new Handler();
+        updateTrackProgressRunnable = () -> {
+            trackSeekBar.setProgress(mpc.getCurrentPosition());
+            elapsedTime.setText(Track.getFormattedDuration(mpc.getCurrentPosition()));
+            updateTrackProgressHandler.postDelayed(updateTrackProgressRunnable, UPDATE_SEEKBAR_TIME);
+        };
+
+        MainActivity.this.runOnUiThread(updateTrackProgressRunnable);
     }
 
     private int getStatusBarHeight() {
@@ -274,6 +341,8 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.Recy
                 .setDuration(100)
                 .translationY(searchBar.getHeight());
     }
+
+
 
 
 }

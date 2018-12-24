@@ -6,7 +6,7 @@ import android.support.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 
-class MediaController extends MediaPlayer {
+class MediaPlayerController extends MediaPlayer {
 
     private final ArrayList<Track> tracks;
     private Track currentTrack;
@@ -21,7 +21,7 @@ class MediaController extends MediaPlayer {
         STOPPED
     }
 
-    public MediaController(ArrayList<Track> tracks) {
+    public MediaPlayerController(ArrayList<Track> tracks) {
         super();
         this.tracks = tracks;
         setState(STATE.IDLE);
