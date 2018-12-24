@@ -9,7 +9,7 @@ import java.util.ArrayList;
 @SuppressWarnings("WeakerAccess")
 class MediaPlayerController extends MediaPlayer {
 
-    private final ArrayList<Track> tracks;
+    private ArrayList<Track> tracks;
     private Track currentTrack;
     private STATE state;
 
@@ -77,6 +77,9 @@ class MediaPlayerController extends MediaPlayer {
         return currentTrack;
     }
 
+    public void setTracks(ArrayList<Track> tracks) {
+        this.tracks = tracks;
+    }
 
     @Override
     public void prepare() throws IOException, IllegalStateException {
@@ -107,7 +110,5 @@ class MediaPlayerController extends MediaPlayer {
         super.pause();
         setState(STATE.PAUSED);
     }
-
-
 
 }

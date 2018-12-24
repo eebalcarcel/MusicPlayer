@@ -19,6 +19,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -37,11 +38,12 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.Recy
     private static final int READ_EXTERNAL_STORAGE_PERMISSION_REQUEST = 1;
     private final static String MEDIA_STATUS_PLAYING = "Playing";
     private final static String MEDIA_STATUS_PAUSED = "Paused";
-    private final static String MEDIA_STATUS_NO_TRACKS = "Not started";
+    private final static String MEDIA_STATUS_NO_TRACKS = "No tracks";
     private final static String MEDIA_STATUS_PERMISSIONS_NOT_GRANTED = "Permissions not granted";
-    private final static String CURRENT_TRACK_NO_TRACKS = "There are no tracks in the folder " + FileManager.FOLDER + ". Add some and restart the app";
-    private final static String CURRENT_TRACK_PERMISSIONS_NOT_GRANTED = "Grant permissions to use the app";
+    private final static String CURRENT_TRACK_NO_TRACKS = "There are no tracks in the folder " + FileManager.FOLDER + ". Add some and restart the app.";
+    private final static String CURRENT_TRACK_PERMISSIONS_NOT_GRANTED = "Grant permissions to use the app.";
     private final static int UPDATE_SEEKBAR_TIME = 100;
+    private boolean tracksExist = true;
     private Button nextButton, previousButton;
     private ToggleButton mediaButton;
     private TextView mediaStatus, txtVcurrentTrack, mc_trackDuration, elapsedTime;
@@ -158,11 +160,9 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.Recy
 
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if (mpc != null && mpc.getState() != MediaPlayerController.STATE.IDLE && mpc.getState() != MediaPlayerController.STATE.INITIALIZED && fromUser) {
+                if (tracks != null && mpc != null && mpc.getState() != MediaPlayerController.STATE.IDLE && mpc.getState() != MediaPlayerController.STATE.INITIALIZED && fromUser) {
                     mpc.seekTo(progress);
                     elapsedTime.setText(Track.getFormattedDuration(mpc.getCurrentPosition()));
-                }else{
-                    checkTracks();
                 }
             }
         });
@@ -176,8 +176,12 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.Recy
                 doMediaAction(MEDIA_ACTION.PAUSE, null);
             }
         });
+        
         nextButton.setOnClickListener(v -> doMediaAction(MEDIA_ACTION.NEXT, null));
         previousButton.setOnClickListener(v -> doMediaAction(MEDIA_ACTION.PREVIOUS, null));
+        mpc = new MediaPlayerController(null);
+        mpc.setOnCompletionListener(mp -> doMediaAction(MEDIA_ACTION.NEXT, null));
+
     }
 
     @Override
@@ -185,8 +189,8 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.Recy
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus) {
             //Initializes mpc when it has been stopped by another app
-            if (mpc != null && mpc.getState() == MediaPlayerController.STATE.STOPPED && tracks != null && !tracks.isEmpty()) {
-                mpc = new MediaPlayerController(tracks);
+            if (mpc != null && mpc.getState() == MediaPlayerController.STATE.STOPPED && checkTracks()) {
+                mpc.setTracks(tracks);
             }
         }
     }
@@ -208,7 +212,7 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.Recy
             case READ_EXTERNAL_STORAGE_PERMISSION_REQUEST: {
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     if (checkTracks()) {
-                        mpc = new MediaPlayerController(tracks);
+                        mpc.setTracks(tracks);
                         trackAdapter = new TrackAdapter(this, tracks, this);
                         rViewTracks.setAdapter(trackAdapter);
                     }
@@ -260,8 +264,6 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.Recy
                                 mpc.prepareTrack(track);
                             }
                         }
-
-                        updateTrackProgress();
                         break;
 
                     case PAUSE:
@@ -292,6 +294,7 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.Recy
                     txtVcurrentTrack.setText(mpc.getCurrentTrack().getTitle());
                     mediaButton.setChecked(true);
                     mediaStatus.setText(MEDIA_STATUS_PLAYING);
+                    updateTrackProgress();
                 } else {
                     mediaButton.setChecked(false);
                     mediaStatus.setText(MEDIA_STATUS_PAUSED);
@@ -327,28 +330,56 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.Recy
     private boolean checkTracks() {
         ArrayList<Track> updatedTracks = FileManager.getTracksFromFiles();
 
-        if (updatedTracks != null && !updatedTracks.isEmpty()) {
-            tracks = updatedTracks;
-            mediaButton.setEnabled(true);
-            nextButton.setEnabled(true);
-            previousButton.setEnabled(true);
-            trackSeekBar.setEnabled(true);
-        } else {
-            if(tracks != null){
-                tracks.clear();
-                trackAdapter.notifyDataSetChanged();
+        if (tracksExist) {
+            if (updatedTracks != null && !updatedTracks.isEmpty()) {
+                tracksExist = true;
+                tracks = updatedTracks;
+            } else {
+                tracksExist = false;
+                disableApp();
             }
-            mediaButton.setEnabled(false);
-            nextButton.setEnabled(false);
-            previousButton.setEnabled(false);
-            trackSeekBar.setEnabled(false);
-            trackSeekBar.setProgress(0);
-            trackSeekBar.setVisibility(View.INVISIBLE);
-            mediaStatus.setText(MEDIA_STATUS_NO_TRACKS);
-            txtVcurrentTrack.setText(CURRENT_TRACK_NO_TRACKS);
         }
 
-        return tracks != null && !tracks.isEmpty();
+        return updatedTracks != null && !updatedTracks.isEmpty();
+    }
+
+    /**
+     * Sets {@link MainActivity#mediaStatus} to {@value MainActivity#MEDIA_STATUS_NO_TRACKS}
+     * and {@link MainActivity#txtVcurrentTrack} to {@value MainActivity#CURRENT_TRACK_NO_TRACKS}<br>
+     *
+     * <br>
+     * Disables or hides everything related to the tracks
+     * (
+     * {@link MainActivity#mpc},
+     * {@link MainActivity#trackSeekBar},
+     * {@link MainActivity#mc_trackDuration},
+     * {@link MainActivity#elapsedTime},
+     * {@link MainActivity#rViewTracks},
+     * {@link MainActivity#mediaButton},
+     * {@link MainActivity#nextButton},
+     * {@link MainActivity#previousButton}
+     * )
+     */
+    private void disableApp() {
+        mpc.reset();
+        mpc.release();
+
+        closeSearchBar();
+        if(updateTrackProgressHandler != null) {
+            updateTrackProgressHandler.removeCallbacks(updateTrackProgressRunnable);
+        }
+        trackSeekBar.setEnabled(false);
+        trackSeekBar.setProgress(0);
+        trackSeekBar.setVisibility(View.GONE);
+        mc_trackDuration.setVisibility(View.GONE);
+        elapsedTime.setVisibility(View.GONE);
+        rViewTracks.setVisibility(View.GONE);
+        mediaButton.setChecked(false);
+        mediaButton.setEnabled(false);
+        nextButton.setEnabled(false);
+        previousButton.setEnabled(false);
+        mediaStatus.setText(MEDIA_STATUS_NO_TRACKS);
+        txtVcurrentTrack.setText(CURRENT_TRACK_NO_TRACKS);
     }
 
     private int getStatusBarHeight() {
@@ -370,21 +401,22 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.Recy
     }
 
     private void openSearchBar() {
-        searchBar.setVisibility(View.VISIBLE);
-        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-        imm.toggleSoftInput(0, InputMethodManager.HIDE_NOT_ALWAYS);
-        search_layout.animate()
-                .setDuration(100)
-                .translationY(searchBar.getHeight())
-                .alpha(1f)
-                .withEndAction(() -> searchBar.requestFocusFromTouch());
+        if (tracksExist && checkTracks()) { //Checks if there are tracks, so it doesn't open when they don't exist
+            searchBar.setVisibility(View.VISIBLE);
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.toggleSoftInput(0, InputMethodManager.HIDE_NOT_ALWAYS);
+            search_layout.animate()
+                    .setDuration(100)
+                    .translationY(searchBar.getHeight())
+                    .alpha(1f)
+                    .withEndAction(() -> searchBar.requestFocusFromTouch());
 
-        rViewTracks.setLayoutParams(new ConstraintLayout.LayoutParams(rViewTracks.getWidth(), rViewTracks.getHeight() - searchBar.getHeight()));
-        rViewTracks.animate()
-                .setDuration(100)
-                .translationY(searchBar.getHeight());
+            rViewTracks.setLayoutParams(new ConstraintLayout.LayoutParams(rViewTracks.getWidth(), rViewTracks.getHeight() - searchBar.getHeight()));
+            rViewTracks.animate()
+                    .setDuration(100)
+                    .translationY(searchBar.getHeight());
+        }
     }
-
 
 
 }
