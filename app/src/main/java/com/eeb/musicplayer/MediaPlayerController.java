@@ -5,6 +5,7 @@ import android.support.annotation.Nullable;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Objects;
 
 @SuppressWarnings("WeakerAccess")
 class MediaPlayerController extends MediaPlayer {
@@ -31,7 +32,7 @@ class MediaPlayerController extends MediaPlayer {
 
     void next() {
         //Checks if the currentTrack isn't the last one, if so plays the first track
-        if (currentTrack != tracks.get(tracks.size() - 1)) {
+        if (!Objects.equals(currentTrack.getPath(), tracks.get(tracks.size() - 1).getPath())) {
             currentTrack = tracks.get(tracks.indexOf(currentTrack) + 1);
         } else {
             currentTrack = tracks.get(0);
