@@ -29,7 +29,7 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
     public TrackViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int i) {
         LayoutInflater inflater = LayoutInflater.from(context);
         @SuppressLint("InflateParams") View view = inflater.inflate(R.layout.list_layout, null);
-        return new TrackViewHolder(view);
+        return new TrackViewHolder(view, trackClickedListener);
     }
 
     @Override
@@ -38,7 +38,7 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
 
         trackViewHolder.trackTitle.setText(track.getTitle());
         trackViewHolder.trackDuration.setText(Track.getFormattedDuration(track.getDuration()));
-        //TODO: trackViewHolder.pin.setChecked(track.isPinned());
+        trackViewHolder.pin.setChecked(track.isPinned());
     }
 
     @Override
@@ -46,29 +46,31 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
         return tracks.size();
     }
 
-    @SuppressWarnings("CanBeFinal")
     class TrackViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
-        TextView trackTitle, trackDuration;
+        private TextView trackTitle, trackDuration;
+        private RecyclerViewClickListener listener;
         final ToggleButton pin;
 
-        TrackViewHolder(View view) {
+        public TrackViewHolder(View view, RecyclerViewClickListener recyclerViewClickListener) {
             super(view);
 
             trackTitle = view.findViewById(R.id.trackTitle);
             trackDuration = view.findViewById(R.id.trackDuration);
             pin = view.findViewById(R.id.pin);
+            pin.setOnClickListener(this);
             view.setOnClickListener(this);
+            listener = recyclerViewClickListener;
         }
 
         @Override
         public void onClick(View v) {
-            trackClickedListener.recyclerViewListClicked(this.getAdapterPosition());
+            listener.onClick(v, getAdapterPosition());
         }
     }
 
     interface RecyclerViewClickListener {
-        void recyclerViewListClicked(int position);
+        void onClick(View v, int position);
     }
 }
 

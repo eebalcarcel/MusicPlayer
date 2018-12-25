@@ -28,13 +28,15 @@ import android.widget.Button;
 import android.widget.SearchView;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import com.github.nisrulz.sensey.Sensey;
 
+import java.io.File;
 import java.util.ArrayList;
 
-public class MainActivity extends AppCompatActivity implements TrackAdapter.RecyclerViewClickListener {
+public class MainActivity extends AppCompatActivity {
     private static final int READ_EXTERNAL_STORAGE_PERMISSION_REQUEST = 1;
     private final static String MEDIA_STATUS_PLAYING = "Playing";
     private final static String MEDIA_STATUS_PAUSED = "Paused";
@@ -61,6 +63,7 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.Recy
     private AudioFocusRequest audioFocusRequest;
     private Runnable updateTrackProgressRunnable;
     private Handler updateTrackProgressHandler;
+    private FileManager fileManager;
 
     public enum MEDIA_ACTION {
         START,
@@ -76,6 +79,8 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.Recy
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         window = getWindow();
+
+        fileManager = new FileManager(this);
 
         //If granted gets tracks, initializes mcp and trackAdapter and sets trackAdapter to rViewTracks
         ActivityCompat.requestPermissions(MainActivity.this,
@@ -176,12 +181,11 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.Recy
                 doMediaAction(MEDIA_ACTION.PAUSE, null);
             }
         });
-        
+
         nextButton.setOnClickListener(v -> doMediaAction(MEDIA_ACTION.NEXT, null));
         previousButton.setOnClickListener(v -> doMediaAction(MEDIA_ACTION.PREVIOUS, null));
         mpc = new MediaPlayerController(null);
         mpc.setOnCompletionListener(mp -> doMediaAction(MEDIA_ACTION.NEXT, null));
-
     }
 
     @Override
@@ -197,14 +201,10 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.Recy
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
         Sensey.getInstance().stop();
+        super.onDestroy();
     }
 
-    @Override
-    public void recyclerViewListClicked(int position) {
-        doMediaAction(MEDIA_ACTION.START, tracks.get(position));
-    }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {
@@ -213,7 +213,15 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.Recy
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     if (checkTracks()) {
                         mpc.setTracks(tracks);
-                        trackAdapter = new TrackAdapter(this, tracks, this);
+                        trackAdapter = new TrackAdapter(this, tracks, (v, position) -> {
+                            if (v.getId() == findViewById(R.id.pin).getId()) {
+                                Track trackClicked = tracks.get(position);
+                                trackClicked.setPinned(!trackClicked.isPinned());
+                                fileManager.storePinnedTracks(tracks);
+                            } else {
+                                doMediaAction(MEDIA_ACTION.START, tracks.get(position));
+                            }
+                        });
                         rViewTracks.setAdapter(trackAdapter);
                     }
                 } else {
@@ -328,7 +336,7 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.Recy
      * @return True if tracks is not null
      */
     private boolean checkTracks() {
-        ArrayList<Track> updatedTracks = FileManager.getTracksFromFiles();
+        ArrayList<Track> updatedTracks = fileManager.getTracksFromFiles();
 
         if (tracksExist) {
             if (updatedTracks != null && !updatedTracks.isEmpty()) {
@@ -365,7 +373,7 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.Recy
         mpc.release();
 
         closeSearchBar();
-        if(updateTrackProgressHandler != null) {
+        if (updateTrackProgressHandler != null) {
             updateTrackProgressHandler.removeCallbacks(updateTrackProgressRunnable);
         }
         trackSeekBar.setEnabled(false);
