@@ -19,7 +19,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -28,12 +27,10 @@ import android.widget.Button;
 import android.widget.SearchView;
 import android.widget.SeekBar;
 import android.widget.TextView;
-import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import com.github.nisrulz.sensey.Sensey;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -219,7 +216,7 @@ public class MainActivity extends AppCompatActivity {
                                 Track trackClicked = tracks.get(position);
                                 trackClicked.setPinned(!trackClicked.isPinned());
                                 arrangeTracks(tracks);
-                                
+                                trackAdapter.setTracks(tracks);
                                 trackAdapter.notifyDataSetChanged();
                                 fileManager.storePinnedTracks(tracks);
                             } else {
@@ -408,8 +405,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         tracksToArrange.clear();
-        Collections.sort(pinnedTracks, (o1, o2) -> o1.compareTo(o2));
-        Collections.sort(notPinnedTracks, (o1, o2) -> o1.compareTo(o2));
+        Collections.sort(pinnedTracks, Track::compareTo);
+        Collections.sort(notPinnedTracks, Track::compareTo);
         tracksToArrange.addAll(pinnedTracks);
         tracksToArrange.addAll(notPinnedTracks);
     }

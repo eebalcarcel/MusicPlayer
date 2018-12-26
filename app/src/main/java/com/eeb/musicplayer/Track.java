@@ -4,7 +4,6 @@ import android.media.MediaMetadataRetriever;
 
 import java.io.File;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 

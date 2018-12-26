@@ -52,7 +52,7 @@ class FileManager {
         ArrayList<Track> tracks = null;
         File[] musicFiles = getMusicFiles();
         if (musicFiles != null) {
-            List<File> files = Arrays.asList(musicFiles);
+            File[] files = musicFiles;
             tracks = new ArrayList<>();
             ArrayList<Track> pinnedTracks = getPinnedTracks();
 

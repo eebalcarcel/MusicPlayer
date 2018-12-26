@@ -15,13 +15,17 @@ import java.util.ArrayList;
 public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHolder> {
 
     private final Context context;
-    private final ArrayList<Track> tracks;
+    private ArrayList<Track> tracks;
     private final RecyclerViewClickListener trackClickedListener;
 
     public TrackAdapter(Context context, ArrayList<Track> tracks, RecyclerViewClickListener trackClickedListener) {
         this.context = context;
         this.tracks = tracks;
         this.trackClickedListener = trackClickedListener;
+    }
+
+    public void setTracks(ArrayList<Track> tracks) {
+        this.tracks = tracks;
     }
 
     @NonNull
@@ -46,13 +50,14 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
         return tracks.size();
     }
 
+
     class TrackViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
         private TextView trackTitle, trackDuration;
         private RecyclerViewClickListener listener;
         final ToggleButton pin;
 
-        public TrackViewHolder(View view, RecyclerViewClickListener recyclerViewClickListener) {
+        TrackViewHolder(View view, RecyclerViewClickListener recyclerViewClickListener) {
             super(view);
 
             trackTitle = view.findViewById(R.id.trackTitle);
