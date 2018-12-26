@@ -49,11 +49,6 @@ class Track extends File{
         this.pinned = pinned;
     }
 
-    boolean wasPinned(String path) {
-        pinned = Objects.equals(getPath(), path);
-        return pinned;
-    }
-
     /**
      * @return String with 'hh:mm:ss' or 'mm:ss' if it doesn't have hours
      */

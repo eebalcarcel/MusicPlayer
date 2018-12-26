@@ -35,6 +35,7 @@ import com.github.nisrulz.sensey.Sensey;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 
 public class MainActivity extends AppCompatActivity {
     private static final int READ_EXTERNAL_STORAGE_PERMISSION_REQUEST = 1;
@@ -217,6 +218,9 @@ public class MainActivity extends AppCompatActivity {
                             if (v.getId() == findViewById(R.id.pin).getId()) {
                                 Track trackClicked = tracks.get(position);
                                 trackClicked.setPinned(!trackClicked.isPinned());
+                                arrangeTracks(tracks);
+                                
+                                trackAdapter.notifyDataSetChanged();
                                 fileManager.storePinnedTracks(tracks);
                             } else {
                                 doMediaAction(MEDIA_ACTION.START, tracks.get(position));
@@ -341,6 +345,7 @@ public class MainActivity extends AppCompatActivity {
         if (tracksExist) {
             if (updatedTracks != null && !updatedTracks.isEmpty()) {
                 tracksExist = true;
+                arrangeTracks(updatedTracks);
                 tracks = updatedTracks;
             } else {
                 tracksExist = false;
@@ -388,6 +393,25 @@ public class MainActivity extends AppCompatActivity {
         previousButton.setEnabled(false);
         mediaStatus.setText(MEDIA_STATUS_NO_TRACKS);
         txtVcurrentTrack.setText(CURRENT_TRACK_NO_TRACKS);
+    }
+
+    private void arrangeTracks(ArrayList<Track> tracksToArrange) {
+        ArrayList<Track> pinnedTracks = new ArrayList<>();
+        ArrayList<Track> notPinnedTracks = new ArrayList<>();
+
+        for (Track track : tracksToArrange) {
+            if (track.isPinned()) {
+                pinnedTracks.add(track);
+            } else {
+                notPinnedTracks.add(track);
+            }
+        }
+
+        tracksToArrange.clear();
+        Collections.sort(pinnedTracks, (o1, o2) -> o1.compareTo(o2));
+        Collections.sort(notPinnedTracks, (o1, o2) -> o1.compareTo(o2));
+        tracksToArrange.addAll(pinnedTracks);
+        tracksToArrange.addAll(notPinnedTracks);
     }
 
     private int getStatusBarHeight() {
