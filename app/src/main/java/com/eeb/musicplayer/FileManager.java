@@ -22,7 +22,6 @@ import java.util.List;
 @SuppressWarnings("WeakerAccess")
 class FileManager {
 
-    final static String FOLDER = "Music";
     final static String PINNED_TRACKS_FILE_NAME = "pinned_tracks";
     final static String PINNED_TRACKS_FILE_EXTENSION = ".json";
     final String pinnedTracksPath;
@@ -37,10 +36,10 @@ class FileManager {
     }
 
     /**
-     * @return Array of File from the {@value FileManager#FOLDER} folder
+     * @return Array of File from the {@link Environment#DIRECTORY_MUSIC} folder
      */
     static File[] getMusicFiles() {
-        path = Environment.getExternalStorageDirectory() + File.separator + FOLDER;
+        path = Environment.getExternalStorageDirectory() + File.separator + Environment.DIRECTORY_MUSIC;
         directory = new File(path);
         return directory.listFiles();
     }

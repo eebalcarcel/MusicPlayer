@@ -9,6 +9,7 @@ import android.media.AudioFocusRequest;
 import android.media.AudioManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -37,12 +38,6 @@ import java.util.Collections;
 
 public class MainActivity extends AppCompatActivity {
     private static final int READ_EXTERNAL_STORAGE_PERMISSION_REQUEST = 1;
-    private final static String MEDIA_STATUS_PLAYING = "Playing";
-    private final static String MEDIA_STATUS_PAUSED = "Paused";
-    private final static String MEDIA_STATUS_NO_TRACKS = "No tracks";
-    private final static String MEDIA_STATUS_PERMISSIONS_NOT_GRANTED = "Permissions not granted";
-    private final static String CURRENT_TRACK_NO_TRACKS = "There are no tracks in the folder " + FileManager.FOLDER + ". Add some and restart the app.";
-    private final static String CURRENT_TRACK_PERMISSIONS_NOT_GRANTED = "Grant permissions to use the app.";
     private final static int UPDATE_SEEKBAR_TIME = 100;
     private boolean tracksExist = true;
     private Button nextButton, previousButton;
@@ -173,10 +168,10 @@ public class MainActivity extends AppCompatActivity {
 
         mediaButton.setOnClickListener(v -> {
             if (!mpc.isPlaying()) {
-                mediaStatus.setText(MEDIA_STATUS_PLAYING);
+                //mediaStatus.setText(getString(R.string.media_status_playing));
                 doMediaAction(MEDIA_ACTION.START, null);
             } else {
-                mediaStatus.setText(MEDIA_STATUS_PAUSED);
+                //mediaStatus.setText(getString(R.string.media_status_paused));
                 doMediaAction(MEDIA_ACTION.PAUSE, null);
             }
         });
@@ -235,7 +230,7 @@ public class MainActivity extends AppCompatActivity {
                     if (checkTracks()) {
                         mpc.setTracks(tracks);
                         trackAdapter = new TrackAdapter(this, tracks, (v, position) -> {
-                            if (v.getId() == findViewById(R.id.pin).getId()) {
+                            if (v.getId() == R.id.pin) {
                                 Track trackClicked = tracks.get(position);
                                 trackClicked.setPinned(!trackClicked.isPinned());
                                 arrangeTracks(tracks);
@@ -252,8 +247,8 @@ public class MainActivity extends AppCompatActivity {
                     mediaButton.setEnabled(false);
                     nextButton.setEnabled(false);
                     previousButton.setEnabled(false);
-                    mediaStatus.setText(MEDIA_STATUS_PERMISSIONS_NOT_GRANTED);
-                    txtVcurrentTrack.setText(CURRENT_TRACK_PERMISSIONS_NOT_GRANTED);
+                    mediaStatus.setText(getString(R.string.media_status_permissions_not_granted));
+                    txtVcurrentTrack.setText(getString(R.string.current_track_permissions_not_granted));
                 }
                 break;
             }
@@ -325,11 +320,11 @@ public class MainActivity extends AppCompatActivity {
                 if (action != MEDIA_ACTION.PAUSE && action != MEDIA_ACTION.STOP) {
                     txtVcurrentTrack.setText(mpc.getCurrentTrack().getTitle());
                     mediaButton.setChecked(true);
-                    mediaStatus.setText(MEDIA_STATUS_PLAYING);
+                    mediaStatus.setText(getString(R.string.media_status_playing));
                     updateTrackProgress();
                 } else {
                     mediaButton.setChecked(false);
-                    mediaStatus.setText(MEDIA_STATUS_PAUSED);
+                    mediaStatus.setText(getString(R.string.media_status_paused));
                 }
             }
         }
@@ -378,8 +373,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Sets {@link MainActivity#mediaStatus} to {@value MainActivity#MEDIA_STATUS_NO_TRACKS}
-     * and {@link MainActivity#txtVcurrentTrack} to {@value MainActivity#CURRENT_TRACK_NO_TRACKS}<br>
+     * Sets {@link MainActivity#mediaStatus} to {@link com.eeb.musicplayer.R.string#media_status_no_tracks}
+     * and {@link MainActivity#txtVcurrentTrack} to {@link com.eeb.musicplayer.R.string#current_track_no_tracks}<br>
      *
      * <br>
      * Disables or hides everything related to the tracks
@@ -412,8 +407,8 @@ public class MainActivity extends AppCompatActivity {
         mediaButton.setEnabled(false);
         nextButton.setEnabled(false);
         previousButton.setEnabled(false);
-        mediaStatus.setText(MEDIA_STATUS_NO_TRACKS);
-        txtVcurrentTrack.setText(CURRENT_TRACK_NO_TRACKS);
+        mediaStatus.setText(getString(R.string.media_status_no_tracks));
+        txtVcurrentTrack.setText(getString(R.string.current_track_no_tracks, Environment.DIRECTORY_MUSIC));
     }
 
     private void arrangeTracks(ArrayList<Track> tracksToArrange) {

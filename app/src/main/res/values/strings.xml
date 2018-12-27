@@ -1,4 +1,9 @@
 <resources>
-    <string name="app_name">Music Player</string>
-    <string name="mediaStatusText">Paused</string>
+    <string name="app_name" translatable="false">Music Player</string>
+    <string name="media_status_playing">Playing</string>
+    <string name="media_status_paused">Paused</string>
+    <string name="media_status_no_tracks">No tracks</string>
+    <string name="media_status_permissions_not_granted">Permissions not granted</string>
+    <string name="current_track_no_tracks">There are no tracks in the folder %s. Add some and restart the app.</string>
+    <string name="current_track_permissions_not_granted">Grant permissions to use the app.</string>
 </resources>

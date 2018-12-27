@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="media_status_playing">Reproduciendo</string>
+    <string name="media_status_paused">Pausado</string>
+    <string name="media_status_no_tracks">No hay tracks</string>
+    <string name="media_status_permissions_not_granted">No se otogaron los permisos</string>
+    <string name="current_track_no_tracks">No hay tracks en la carpeta %s. Agregá algunos y reinicia la aplicación.</string>
+    <string name="current_track_permissions_not_granted">Otorgale permisos a la aplicación para poder usarla.</string>
+</resources>
