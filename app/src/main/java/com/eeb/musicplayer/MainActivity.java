@@ -19,12 +19,13 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
-import android.widget.SearchView;
+import android.support.v7.widget.SearchView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.ToggleButton;
@@ -55,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
     private ConstraintLayout search_layout;
     private SeekBar trackSeekBar;
     private Window window;
-    private ArrayList<Track> tracks;
+    private ArrayList<Track> tracks, allTracks; //Tracks can change its elements. The elements of allTracks will always be the same
     private AudioManager.OnAudioFocusChangeListener afChangeListener;
     private AudioManager audioManager;
     private AudioFocusRequest audioFocusRequest;
@@ -184,6 +185,28 @@ public class MainActivity extends AppCompatActivity {
         previousButton.setOnClickListener(v -> doMediaAction(MEDIA_ACTION.PREVIOUS, null));
         mpc = new MediaPlayerController(null);
         mpc.setOnCompletionListener(mp -> doMediaAction(MEDIA_ACTION.NEXT, null));
+
+        searchBar.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                if(tracks != null) {
+                    tracks.clear();
+                    tracks.addAll(allTracks);
+
+                    filterTracks(newText);
+
+                    arrangeTracks(tracks);
+                    trackAdapter.setTracks(tracks);
+                    trackAdapter.notifyDataSetChanged();
+                }
+                return false;
+            }
+        });
     }
 
     @Override
@@ -340,10 +363,11 @@ public class MainActivity extends AppCompatActivity {
         ArrayList<Track> updatedTracks = fileManager.getTracksFromFiles();
 
         if (tracksExist) {
-            if (updatedTracks != null && !updatedTracks.isEmpty()) {
+            if ((tracks == null || !tracks.isEmpty()) && updatedTracks != null && !updatedTracks.isEmpty()) {
                 tracksExist = true;
                 arrangeTracks(updatedTracks);
                 tracks = updatedTracks;
+                allTracks = new ArrayList<>(updatedTracks);
             } else {
                 tracksExist = false;
                 disableApp();
@@ -411,12 +435,31 @@ public class MainActivity extends AppCompatActivity {
         tracksToArrange.addAll(notPinnedTracks);
     }
 
+   private void filterTracks(String text){
+       if(text != null && !text.isEmpty()) {
+           ArrayList<Track> tracksSearched = new ArrayList<>();
+
+           for (Track t : tracks) {
+               if ((t.getTitle().toLowerCase()).contains(text.toLowerCase())) {
+                   tracksSearched.add(t);
+               }
+           }
+
+           if (tracksSearched != null && !tracksSearched.isEmpty()) {
+               tracks.clear();
+               tracks.addAll(tracksSearched);
+           }
+       }
+   }
+
     private int getStatusBarHeight() {
         int resourceId = getResources().getIdentifier("status_bar_height", "dimen", "android");
         return resourceId > 0 ? getResources().getDimensionPixelSize(resourceId) : 0;
     }
 
     private void closeSearchBar() {
+        searchBar.setQuery("",false);
+        searchBar.clearFocus();
         search_layout.animate()
                 .setDuration(250)
                 .translationY(-searchBar.getHeight())
