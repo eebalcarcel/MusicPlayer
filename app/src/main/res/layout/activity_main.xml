@@ -147,7 +147,6 @@
             android:paddingEnd="5dp"
             android:progressDrawable="@drawable/seek_bar"
             android:thumb="@drawable/seek_thumb"
-            android:visibility="invisible"
             app:layout_constraintBottom_toBottomOf="@+id/bottomBar"
             app:layout_constraintEnd_toEndOf="@+id/bottomBar"
             app:layout_constraintStart_toStartOf="parent" />

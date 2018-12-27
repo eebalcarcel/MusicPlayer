@@ -16,31 +16,30 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 @SuppressWarnings("WeakerAccess")
 class FileManager {
 
-    final static String PINNED_TRACKS_FILE_NAME = "pinned_tracks";
-    final static String PINNED_TRACKS_FILE_EXTENSION = ".json";
-    final String pinnedTracksPath;
-    final Context context;
-    static File directory;
-    static String path;
-
+    private final static String PINNED_TRACKS_FILE_NAME = "pinned_tracks";
+    private final static String LAST_TRACK_PLAYED_FILE_NAME = "last_played_track";
+    private final static String JSON_FILE_EXTENSION = ".json";
+    private final String pinnedTracksPath;
+    private final String lastTrackPlayedPath;
+    private final Context context;
 
     public FileManager(Context context) {
         this.context = context;
-        pinnedTracksPath = context.getCacheDir() + File.separator + PINNED_TRACKS_FILE_NAME + PINNED_TRACKS_FILE_EXTENSION;
+        pinnedTracksPath = context.getCacheDir() + File.separator + PINNED_TRACKS_FILE_NAME + JSON_FILE_EXTENSION;
+        lastTrackPlayedPath = context.getCacheDir() + File.separator + LAST_TRACK_PLAYED_FILE_NAME + JSON_FILE_EXTENSION;
     }
 
     /**
      * @return Array of File from the {@link Environment#DIRECTORY_MUSIC} folder
      */
     static File[] getMusicFiles() {
-        path = Environment.getExternalStorageDirectory() + File.separator + Environment.DIRECTORY_MUSIC;
-        directory = new File(path);
+        String path = Environment.getExternalStorageDirectory() + File.separator + Environment.DIRECTORY_MUSIC;
+        File directory = new File(path);
         return directory.listFiles();
     }
 
@@ -51,11 +50,10 @@ class FileManager {
         ArrayList<Track> tracks = null;
         File[] musicFiles = getMusicFiles();
         if (musicFiles != null) {
-            File[] files = musicFiles;
             tracks = new ArrayList<>();
             ArrayList<Track> pinnedTracks = getPinnedTracks();
 
-            for (File file : files) {
+            for (File file : musicFiles) {
                 String filePath = file.getPath();
                 try {
                     String fileName = URLEncoder.encode(filePath, "UTF-8");
@@ -77,17 +75,19 @@ class FileManager {
 
 
     void storePinnedTracks(ArrayList<Track> tracks) {
-        try (FileWriter fileWriter = new FileWriter(pinnedTracksPath)) {
-            ArrayList<Track> pinnedTracks = new ArrayList<>();
-            for (Track track : tracks) {
-                if (track.isPinned()) {
-                    pinnedTracks.add(track);
+        if(tracks != null && !tracks.isEmpty()) {
+            try (FileWriter fileWriter = new FileWriter(pinnedTracksPath)) {
+                ArrayList<Track> pinnedTracks = new ArrayList<>();
+                for (Track track : tracks) {
+                    if (track.isPinned()) {
+                        pinnedTracks.add(track);
+                    }
                 }
+                fileWriter.write(new Gson().toJson(pinnedTracks));
+            } catch (IOException e) {
+                Toast.makeText(context, "Error storing pinned tracks to cache", Toast.LENGTH_LONG).show();
+                e.printStackTrace();
             }
-            fileWriter.write(new Gson().toJson(pinnedTracks));
-        } catch (IOException e) {
-            Toast.makeText(context, "Error storing pinned tracks to cache", Toast.LENGTH_LONG).show();
-            e.printStackTrace();
         }
     }
 
@@ -98,7 +98,6 @@ class FileManager {
             try (BufferedReader reader = new BufferedReader(new FileReader(pinnedTracksPath))) {
                 pinnedTracks = (new Gson()).fromJson(reader, new TypeToken<List<Track>>() {
                 }.getType());
-
             } catch (IOException e) {
                 Toast.makeText(context, "Error getting pinned tracks from cache", Toast.LENGTH_LONG).show();
                 e.printStackTrace();
@@ -107,5 +106,29 @@ class FileManager {
         return pinnedTracks;
     }
 
+    void storeLastTrackPlayed(Track track){
+        if(track != null) {
+            try (FileWriter fileWriter = new FileWriter(lastTrackPlayedPath)) {
+                fileWriter.write(new Gson().toJson(track));
+            } catch (IOException e) {
+                Toast.makeText(context, "Error storing the last track played to cache", Toast.LENGTH_LONG).show();
+                e.printStackTrace();
+            }
+        }
+    }
+
+    Track getLastTrackPlayed(){
+        Track lastTrackPlayed = null;
+        if((new File(lastTrackPlayedPath)).isFile()) {
+            try (BufferedReader reader = new BufferedReader(new FileReader(lastTrackPlayedPath))) {
+                lastTrackPlayed = (new Gson()).fromJson(reader, new TypeToken<Track>() {
+                }.getType());
+            } catch (IOException e) {
+                Toast.makeText(context, "Error getting the last track played from cache", Toast.LENGTH_LONG).show();
+                e.printStackTrace();
+            }
+        }
+        return lastTrackPlayed;
+    }
 
 }

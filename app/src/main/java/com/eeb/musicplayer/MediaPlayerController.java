@@ -1,6 +1,7 @@
 package com.eeb.musicplayer;
 
 import android.media.MediaPlayer;
+import android.os.Handler;
 import android.support.annotation.Nullable;
 
 import java.io.IOException;
@@ -10,11 +11,13 @@ import java.util.Objects;
 @SuppressWarnings("WeakerAccess")
 class MediaPlayerController extends MediaPlayer {
 
+    private static final int UPDATE_ELAPSED_TIME = 100;
+    private Runnable updateTrackElapsedTime;
     private ArrayList<Track> tracks;
     private Track currentTrack;
     private STATE state;
 
-    public enum STATE{
+    public enum STATE {
         IDLE,
         INITIALIZED,
         PREPARED,
@@ -27,7 +30,6 @@ class MediaPlayerController extends MediaPlayer {
         super();
         this.tracks = tracks;
         setState(STATE.IDLE);
-        setOnPreparedListener(MediaPlayer::start);
     }
 
     void next() {
@@ -51,19 +53,19 @@ class MediaPlayerController extends MediaPlayer {
     }
 
     void prepareTrack(@Nullable Track track) {
+        this.setTrack(track == null ? currentTrack : track);
+        this.prepareAsync();
+    }
+
+    void setTrack(Track track) {
         try {
-            this.setTrack(track==null?currentTrack:track);
-            this.prepareAsync();
+            reset();
+            setDataSource(track.getPath());
+            setState(STATE.INITIALIZED);
+            currentTrack = track;
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    void setTrack(Track track) throws IOException, IllegalArgumentException, IllegalStateException, SecurityException {
-        reset();
-        setDataSource(track.getPath());
-        setState(STATE.INITIALIZED);
-        currentTrack = track;
     }
 
     public STATE getState() {
@@ -82,34 +84,49 @@ class MediaPlayerController extends MediaPlayer {
         this.tracks = tracks;
     }
 
+    /**
+     * @return The {@link Runnable} that sets the elapsed time to the track every {@value UPDATE_ELAPSED_TIME}ms
+     */
+    public Runnable getElapsedTimeToTrackRunnable() {
+        Handler updateTrackElapsedTimeHandler = new Handler();
+        if (currentTrack.getElapsedTime() > 0) {
+            this.seekTo(currentTrack.getElapsedTime());
+        }
+        return updateTrackElapsedTime = () -> {
+            currentTrack.setElapsedTime(getCurrentPosition());
+            updateTrackElapsedTimeHandler.postDelayed(updateTrackElapsedTime, UPDATE_ELAPSED_TIME);
+        };
+    }
+
     @Override
     public void prepare() throws IOException, IllegalStateException {
-        super.prepare();
         setState(STATE.PREPARED);
+        super.prepare();
     }
 
     @Override
     public void prepareAsync() throws IllegalStateException {
-        super.prepareAsync();
         setState(STATE.PREPARED);
+        super.prepareAsync();
     }
 
     @Override
     public void start() throws IllegalStateException {
-        super.start();
         setState(STATE.PLAYING);
+        super.start();
     }
 
     @Override
     public void stop() throws IllegalStateException {
-        super.stop();
         setState(STATE.STOPPED);
+        super.stop();
     }
 
     @Override
     public void pause() throws IllegalStateException {
-        super.pause();
         setState(STATE.PAUSED);
+        super.pause();
     }
+
 
 }

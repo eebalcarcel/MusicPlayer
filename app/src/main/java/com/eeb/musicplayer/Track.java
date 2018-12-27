@@ -13,6 +13,7 @@ class Track extends File{
     private String title;
     private final int duration;
     private boolean pinned;
+    private int elapsedTime;
 
     public Track(String pathname) {
         super(pathname);
@@ -26,6 +27,8 @@ class Track extends File{
         mmr.setDataSource(this.getPath());
         this.duration = Integer.parseInt(mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
         mmr.release();
+
+        this.setElapsedTime(0);
     }
 
     public String getTitle() {
@@ -46,6 +49,14 @@ class Track extends File{
 
     public void setPinned(boolean pinned) {
         this.pinned = pinned;
+    }
+
+    public int getElapsedTime() {
+        return elapsedTime;
+    }
+
+    public void setElapsedTime(int elapsedTime) {
+        this.elapsedTime = elapsedTime;
     }
 
     /**

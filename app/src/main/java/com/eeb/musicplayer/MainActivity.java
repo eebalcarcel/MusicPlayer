@@ -20,7 +20,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -30,8 +29,6 @@ import android.support.v7.widget.SearchView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.ToggleButton;
-
-import com.github.nisrulz.sensey.Sensey;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -168,10 +165,8 @@ public class MainActivity extends AppCompatActivity {
 
         mediaButton.setOnClickListener(v -> {
             if (!mpc.isPlaying()) {
-                //mediaStatus.setText(getString(R.string.media_status_playing));
                 doMediaAction(MEDIA_ACTION.START, null);
             } else {
-                //mediaStatus.setText(getString(R.string.media_status_paused));
                 doMediaAction(MEDIA_ACTION.PAUSE, null);
             }
         });
@@ -180,7 +175,11 @@ public class MainActivity extends AppCompatActivity {
         previousButton.setOnClickListener(v -> doMediaAction(MEDIA_ACTION.PREVIOUS, null));
         mpc = new MediaPlayerController(null);
         mpc.setOnCompletionListener(mp -> doMediaAction(MEDIA_ACTION.NEXT, null));
-
+        mpc.setOnPreparedListener(mediaPlayer -> {
+            if (mpc.getCurrentTrack().getElapsedTime() == 0) {
+                mediaPlayer.start();
+            }
+        });
         searchBar.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
@@ -189,7 +188,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public boolean onQueryTextChange(String newText) {
-                if(tracks != null) {
+                if (tracks != null) {
                     tracks.clear();
                     tracks.addAll(allTracks);
 
@@ -216,9 +215,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onDestroy() {
-        Sensey.getInstance().stop();
-        super.onDestroy();
+    public void onStop() {
+        fileManager.storePinnedTracks(tracks);
+        fileManager.storeLastTrackPlayed(mpc.getCurrentTrack());
+        super.onStop();
     }
 
 
@@ -236,12 +236,13 @@ public class MainActivity extends AppCompatActivity {
                                 arrangeTracks(tracks);
                                 trackAdapter.setTracks(tracks);
                                 trackAdapter.notifyDataSetChanged();
-                                fileManager.storePinnedTracks(tracks);
                             } else {
                                 doMediaAction(MEDIA_ACTION.START, tracks.get(position));
                             }
                         });
                         rViewTracks.setAdapter(trackAdapter);
+
+                        prepareLastPlayedTrack(fileManager.getLastTrackPlayed());
                     }
                 } else {
                     mediaButton.setEnabled(false);
@@ -282,13 +283,14 @@ public class MainActivity extends AppCompatActivity {
                         }
 
                         if (afRequestResult == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
-                            if (track == null) {
-                                //TODO Add last played song before closing app
-                        /*trackSeekBar.setMax();
-                        mpc.prepareTrack();*/
-                                mpc.start();
+                            if (track != null) {
+                                if (track.getElapsedTime() > 0) {
+                                    mpc.prepareTrack(track);
+                                } else {
+                                    mpc.prepareTrack(track);
+                                }
                             } else {
-                                mpc.prepareTrack(track);
+                                mpc.start();
                             }
                         }
                         break;
@@ -317,7 +319,8 @@ public class MainActivity extends AppCompatActivity {
                         break;
                 }
 
-                if (action != MEDIA_ACTION.PAUSE && action != MEDIA_ACTION.STOP) {
+                //Checks if the track isn't the last played and if the action isn't pause nor stop
+                if ((track == null || track.getElapsedTime() == 0) && (action != MEDIA_ACTION.PAUSE && action != MEDIA_ACTION.STOP)) {
                     txtVcurrentTrack.setText(mpc.getCurrentTrack().getTitle());
                     mediaButton.setChecked(true);
                     mediaStatus.setText(getString(R.string.media_status_playing));
@@ -326,6 +329,7 @@ public class MainActivity extends AppCompatActivity {
                     mediaButton.setChecked(false);
                     mediaStatus.setText(getString(R.string.media_status_paused));
                 }
+
             }
         }
     }
@@ -335,7 +339,6 @@ public class MainActivity extends AppCompatActivity {
      * Sets the max progress of the seek bar to the duration of the track and updates its progress every second
      */
     private void updateTrackProgress() {
-        trackSeekBar.setVisibility(View.VISIBLE);
         mc_trackDuration.setText(Track.getFormattedDuration(mpc.getCurrentTrack().getDuration()));
         trackSeekBar.setMax(mpc.getCurrentTrack().getDuration());
 
@@ -346,6 +349,7 @@ public class MainActivity extends AppCompatActivity {
             updateTrackProgressHandler.postDelayed(updateTrackProgressRunnable, UPDATE_SEEKBAR_TIME);
         };
 
+        MainActivity.this.runOnUiThread(mpc.getElapsedTimeToTrackRunnable());
         MainActivity.this.runOnUiThread(updateTrackProgressRunnable);
     }
 
@@ -430,22 +434,33 @@ public class MainActivity extends AppCompatActivity {
         tracksToArrange.addAll(notPinnedTracks);
     }
 
-   private void filterTracks(String text){
-       if(text != null && !text.isEmpty()) {
-           ArrayList<Track> tracksSearched = new ArrayList<>();
+    private void filterTracks(String text) {
+        if (text != null && !text.isEmpty()) {
+            ArrayList<Track> tracksSearched = new ArrayList<>();
 
-           for (Track t : tracks) {
-               if ((t.getTitle().toLowerCase()).contains(text.toLowerCase())) {
-                   tracksSearched.add(t);
-               }
-           }
+            for (Track t : tracks) {
+                if ((t.getTitle().toLowerCase()).contains(text.toLowerCase())) {
+                    tracksSearched.add(t);
+                }
+            }
 
-           if (tracksSearched != null && !tracksSearched.isEmpty()) {
-               tracks.clear();
-               tracks.addAll(tracksSearched);
-           }
-       }
-   }
+            if (!tracksSearched.isEmpty()) {
+                tracks.clear();
+                tracks.addAll(tracksSearched);
+            }
+        }
+    }
+
+    private void prepareLastPlayedTrack(Track lastPlayedTrack) {
+        if (lastPlayedTrack != null) {
+            trackSeekBar.setMax(lastPlayedTrack.getDuration());
+            trackSeekBar.setProgress(lastPlayedTrack.getElapsedTime());
+            txtVcurrentTrack.setText(lastPlayedTrack.getTitle());
+            mc_trackDuration.setText(Track.getFormattedDuration(lastPlayedTrack.getDuration()));
+            elapsedTime.setText(Track.getFormattedDuration(lastPlayedTrack.getElapsedTime()));
+            doMediaAction(MEDIA_ACTION.START, lastPlayedTrack);
+        }
+    }
 
     private int getStatusBarHeight() {
         int resourceId = getResources().getIdentifier("status_bar_height", "dimen", "android");
@@ -453,7 +468,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void closeSearchBar() {
-        searchBar.setQuery("",false);
+        searchBar.setQuery("", false);
         searchBar.clearFocus();
         search_layout.animate()
                 .setDuration(250)
