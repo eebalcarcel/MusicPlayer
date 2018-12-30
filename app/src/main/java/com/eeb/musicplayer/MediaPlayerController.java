@@ -128,5 +128,9 @@ class MediaPlayerController extends MediaPlayer {
         super.pause();
     }
 
-
+    @Override
+    public void seekTo(int msec) throws IllegalStateException {
+        getCurrentTrack().setElapsedTime(msec);
+        super.seekTo(msec);
+    }
 }

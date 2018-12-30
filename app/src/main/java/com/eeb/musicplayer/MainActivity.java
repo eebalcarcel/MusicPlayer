@@ -19,13 +19,13 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
-import android.support.v7.widget.SearchView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.ToggleButton;
@@ -55,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
     private Runnable updateTrackProgressRunnable;
     private Handler updateTrackProgressHandler;
     private FileManager fileManager;
+    private Track lastTrackPlayed;
 
     public enum MEDIA_ACTION {
         START,
@@ -64,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
         STOP
     }
 
+
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,6 +74,7 @@ public class MainActivity extends AppCompatActivity {
         window = getWindow();
 
         fileManager = new FileManager(this);
+        lastTrackPlayed = fileManager.getLastTrackPlayed();
 
         //If granted gets tracks, initializes mcp and trackAdapter and sets trackAdapter to rViewTracks
         ActivityCompat.requestPermissions(MainActivity.this,
@@ -180,6 +183,7 @@ public class MainActivity extends AppCompatActivity {
                 mediaPlayer.start();
             }
         });
+
         searchBar.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
@@ -201,6 +205,8 @@ public class MainActivity extends AppCompatActivity {
                 return false;
             }
         });
+
+
     }
 
     @Override
@@ -220,7 +226,6 @@ public class MainActivity extends AppCompatActivity {
         fileManager.storeLastTrackPlayed(mpc.getCurrentTrack());
         super.onStop();
     }
-
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {
@@ -242,7 +247,7 @@ public class MainActivity extends AppCompatActivity {
                         });
                         rViewTracks.setAdapter(trackAdapter);
 
-                        prepareLastPlayedTrack(fileManager.getLastTrackPlayed());
+                        prepareLastPlayedTrack(lastTrackPlayed);
                     }
                 } else {
                     mediaButton.setEnabled(false);
@@ -267,30 +272,16 @@ public class MainActivity extends AppCompatActivity {
             if (mpc.getState() != MediaPlayerController.STATE.IDLE || mpc.getState() != MediaPlayerController.STATE.STOPPED) {
                 switch (action) {
                     case START:
-                        //Requests audio focus
-                        int afRequestResult;
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            AudioAttributes audioAttributes = new AudioAttributes.Builder()
-                                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                                    .build();
-                            audioFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-                                    .setAudioAttributes(audioAttributes)
-                                    .setOnAudioFocusChangeListener(afChangeListener).build();
-                            afRequestResult = audioManager.requestAudioFocus(audioFocusRequest);
-                        } else {
-                            afRequestResult = audioManager.requestAudioFocus(afChangeListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
-                        }
-
-                        if (afRequestResult == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+                        if (requestAudioFocus() == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
                             if (track != null) {
-                                if (track.getElapsedTime() > 0) {
-                                    mpc.prepareTrack(track);
-                                } else {
-                                    mpc.prepareTrack(track);
-                                }
+                                mpc.prepareTrack(track);
                             } else {
-                                mpc.start();
+                                //If there is no last track played, it plays a random one
+                                if (lastTrackPlayed == null) {
+                                    mpc.prepareTrack(tracks.get((int) (Math.random() * (tracks.size() - 1))));
+                                } else {
+                                    mpc.start();
+                                }
                             }
                         }
                         break;
@@ -311,20 +302,16 @@ public class MainActivity extends AppCompatActivity {
                         updateTrackProgressHandler.removeCallbacks(updateTrackProgressRunnable);
                         mpc.reset();
                         mpc.release();
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            audioManager.abandonAudioFocusRequest(audioFocusRequest);
-                        } else {
-                            audioManager.abandonAudioFocus(afChangeListener);
-                        }
+                        abandonAudioFocus();
                         break;
                 }
 
+                txtVcurrentTrack.setText(mpc.getCurrentTrack().getTitle());
                 //Checks if the track isn't the last played and if the action isn't pause nor stop
                 if ((track == null || track.getElapsedTime() == 0) && (action != MEDIA_ACTION.PAUSE && action != MEDIA_ACTION.STOP)) {
-                    txtVcurrentTrack.setText(mpc.getCurrentTrack().getTitle());
                     mediaButton.setChecked(true);
                     mediaStatus.setText(getString(R.string.media_status_playing));
-                    updateTrackProgress();
+                    setTrackProgressUpdater();
                 } else {
                     mediaButton.setChecked(false);
                     mediaStatus.setText(getString(R.string.media_status_paused));
@@ -338,7 +325,7 @@ public class MainActivity extends AppCompatActivity {
      * Sets the total duration of the track duration and updates the elapsed time
      * Sets the max progress of the seek bar to the duration of the track and updates its progress every second
      */
-    private void updateTrackProgress() {
+    private void setTrackProgressUpdater() {
         mc_trackDuration.setText(Track.getFormattedDuration(mpc.getCurrentTrack().getDuration()));
         trackSeekBar.setMax(mpc.getCurrentTrack().getDuration());
 
@@ -500,5 +487,26 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private int requestAudioFocus() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .build();
+            audioFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                    .setAudioAttributes(audioAttributes)
+                    .setOnAudioFocusChangeListener(afChangeListener).build();
+            return audioManager.requestAudioFocus(audioFocusRequest);
+        } else {
+            return audioManager.requestAudioFocus(afChangeListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
+        }
+    }
 
+    private void abandonAudioFocus() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioManager.abandonAudioFocusRequest(audioFocusRequest);
+        } else {
+            audioManager.abandonAudioFocus(afChangeListener);
+        }
+    }
 }
